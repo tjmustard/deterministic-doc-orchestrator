@@ -1,2 +1,234 @@
 # deterministic-doc-orchestrator
-A multi-agent CLI pipeline that uses deterministic state management to generate and rigorously stress-test complex technical documents.
+
+A multi-agent CLI pipeline that uses deterministic YAML-driven state management to generate and rigorously stress-test complex technical documents (patent disclosures, PRDs, legal briefs, and more).
+
+LLM reasoning is strictly confined to individual skill steps. All routing, state transitions, and file management are handled by deterministic Python — no AI ever decides what happens next.
+
+---
+
+## How it works
+
+```
+[Transcript] → /extract → /redteam × N personas → /interview → /integrate → /promote → [Approved Doc]
+```
+
+Each document section is a **module** with an explicit status in `state_graph.yml`. `orchestrator.py` reads that file and calls the correct skill subprocess — advancing, halting, or failing deterministically based on status alone.
+
+---
+
+## Installation
+
+**Prerequisites:** Python 3, `pip`, `git`, a Claude Code (or compatible) agentic IDE.
+
+```bash
+# Interactive (choose which IDEs to support)
+bash install.sh
+
+# Non-interactive (installs all IDEs)
+bash install.sh -y
+
+# Specific IDEs only
+bash install.sh --ides="claude,windsurf"
+```
+
+The installer:
+- Copies `.agents/`, `spec/`, `tests/`, `docs/`, `.agentignore` into your repo.
+- Copies IDE-specific config files (e.g. `CLAUDE.md`, `GEMINI.md`, `.claude/`).
+- Installs the `pyyaml` Python dependency.
+- Optionally adds IDE paths to `.gitignore`.
+
+**Upgrade an existing installation:**
+
+```bash
+bash install.sh          # prompts per-directory
+bash install.sh -y       # accepts all updates
+```
+
+---
+
+## Quick start
+
+```bash
+# 1. Scaffold a workspace for a new job
+python init_workspace.py my_patent \
+  --personas patent_examiner skeptic \
+  --templates invention_disclosure
+
+# 2. Run the orchestrator — it drives the full pipeline automatically
+python orchestrator.py --workspace ./my_patent
+
+# 3. The orchestrator halts at pending_interview. Run the interview skill,
+#    then re-run the orchestrator to continue.
+
+# 4. After integration, review and approve outputs
+#    /promote my_patent_module   (in your agentic IDE)
+```
+
+---
+
+## CLI reference
+
+### `init_workspace.py` — scaffold a job workspace
+
+```
+python init_workspace.py <job_name> [OPTIONS]
+```
+
+| Option | Description |
+|---|---|
+| `--workspace-root <path>` | Parent directory for the workspace (default: `.`) |
+| `--personas <id> ...` | Persona IDs to validate against `.agents/schemas/personas/` |
+| `--templates <id> ...` | Template IDs to validate against `.agents/schemas/templates/` |
+| `--force` | Wipe and recreate an existing workspace |
+
+Creates: `<job_name>/{state_graph.yml, transcripts/, active/, compiled/, archive/, personas_snapshot/}`
+
+Validates all referenced persona and template files **before** touching the filesystem.
+
+---
+
+### `orchestrator.py` — YAML-driven state machine
+
+```
+python orchestrator.py --workspace <path> [--reset <module_id>]
+```
+
+| Option | Description |
+|---|---|
+| `--workspace <path>` | Path to the workspace directory (required) |
+| `--reset <module_id>` | Archive compiled output and revert module to `pending_integration` |
+
+**What it does on each run:**
+
+1. Acquires `<workspace>/.orchestrator.lock` — aborts if it already exists.
+2. Validates state YAML, warns if `confidence_score < 7`, checks all referenced files exist, scans `active/`, `transcripts/`, `compiled/` for symlinks.
+3. Snapshots global persona files into `<workspace>/personas_snapshot/`.
+4. Iterates over modules in order, invoking `claude /{skill} --workspace <path>` subprocesses:
+
+| Module status | Action |
+|---|---|
+| `pending_extraction` | Run `/extract`; advance to `extracted` or set `failed` |
+| `extracted` | Run `/redteam` per persona; advance to `pending_interview` (or `pending_integration` if `skip_adversarial: true`) |
+| `pending_interview` | **Halt** — operator must run `/interview`, then re-run orchestrator |
+| `pending_integration` | Run `/integrate`; advance to `integrated`; archive active draft |
+| `integrated` | Skip |
+| `failed` | **Halt** with error — investigate, run `audit_state.py`, retry |
+
+On any subprocess failure: sets module status to `failed`, writes state atomically, exits 1. Lockfile is always cleaned up via `try/finally`.
+
+---
+
+### `audit_state.py` — reconcile state after a crash
+
+```
+python audit_state.py --workspace <path>
+```
+
+Scans the workspace filesystem and reconciles `state_graph.yml`. Detects drifted or failed modules after a crash or manual file move, prints a human-readable diff, and writes corrected statuses back atomically.
+
+---
+
+### `archive_manager.py` — archive files with collision-proof timestamps
+
+```
+python archive_manager.py --module <module_id> --workspace <path>
+```
+
+Moves `active/draft_<module_id>.md` to `archive/<timestamp_us>_draft_<module_id>.md`. Timestamps use microsecond precision (`%Y%m%d_%H%M%S_%f`) to prevent collisions on rapid sequential calls.
+
+Also importable directly:
+
+```python
+from archive_manager import archive_draft, archive_compiled
+
+archive_draft("novelty", workspace_path)       # archives active/draft_novelty.md
+archive_compiled("novelty", workspace_path)    # archives compiled/final_novelty.md
+```
+
+---
+
+## Slash commands (agentic IDE)
+
+| Command | Description |
+|---|---|
+| `/template-architect` | Guided interview to create a new document-type template in `.agents/schemas/templates/` |
+| `/forge_persona` | Create a new adversarial persona in `.agents/schemas/personas/` |
+| `/forge_persona --update <id>` | Update an existing persona (warns if active jobs reference it) |
+| `/extract <module_id>` | Map transcript to template; write `active/draft_<id>.md`; mark `extracted` |
+| `/redteam <module_id> <persona_id>` | Append adversarial questions to master questionnaire (50-question cap) |
+| `/interview <module_id>` | Pace Q&A 3 questions at a time; type `DONE` to pause; resumes from last index |
+| `/integrate <module_id>` | Synthesize final compiled doc from draft + Q&A answers |
+| `/promote <module_id>` | Present candidate outputs for APPROVE/REJECT; approved files move to `tests/fixtures/` |
+
+---
+
+## Workspace structure
+
+```
+<job_name>/
+├── .orchestrator.lock            # Created at pipeline start, deleted on exit
+├── state_graph.yml               # Deterministic state — always written atomically
+├── personas_snapshot/            # Frozen copy of personas at pipeline start
+├── transcripts/
+│   ├── raw_input.md              # Operator-provided source transcript
+│   └── module_<id>_answers.md   # Q&A answers from /interview
+├── active/
+│   ├── draft_<module_id>.md
+│   └── module_<module_id>_questions.md
+├── compiled/
+│   └── final_<module_id>.md
+└── archive/
+    └── <timestamp_us>_draft_<module_id>.md
+```
+
+**Global (repo-level):**
+
+```
+.agentignore                        # Blocks agents from reading **/archive/**
+.agents/
+├── workspace_registry.yml          # Index of all initialized workspaces
+├── schemas/
+│   ├── personas/<id>.md            # Versioned adversarial personas
+│   └── templates/<id>.md          # Document type templates
+└── scripts/
+    ├── hypergraph_updater.py
+    └── archive_specs.py
+tests/
+├── candidate_outputs/              # AI-generated, awaiting human review
+└── fixtures/                       # Human-approved ground truth
+```
+
+---
+
+## Uninstall
+
+The framework installs only files and directories into your repo — no system-level changes, no daemons, no entries outside the project directory.
+
+**Remove all framework files:**
+
+```bash
+# Core framework
+rm -rf .agents/ spec/ tests/ docs/ .agentignore
+
+# Python scripts (if added at repo root)
+rm -f init_workspace.py orchestrator.py audit_state.py archive_manager.py state_graph_schema.py
+
+# IDE-specific files — remove whichever you installed:
+rm -rf .claude/ .windsurf/ .cursor/ .clinerules/ .roo/
+rm -f CLAUDE.md GEMINI.md AGENTS.md install.sh
+```
+
+**Remove the Python dependency (only if nothing else uses it):**
+
+```bash
+pip uninstall pyyaml
+```
+
+**Clean up `.gitignore` entries** (if you added IDE paths during install): remove the `# Hypergraph Coding Agent Framework — IDE config` block and the entries below it.
+
+**Remove workspace directories** created by `init_workspace.py` (these are wherever you ran the script — check `.agents/workspace_registry.yml` for the full list before deleting):
+
+```bash
+# Example — adjust paths per your registry
+rm -rf ./my_patent ./my_prd
+```

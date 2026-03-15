@@ -1,0 +1,571 @@
+nodes:
+- id: orchestrator_system
+  dimension: System
+  status: clean
+  associated_file: .agents/memory/systemPatterns.md
+  description: "The Deterministic Document Orchestrator \u2014 a multi-agent CLI pipeline\
+    \ that decouples LLM reasoning from deterministic YAML-driven state management\
+    \ to produce high-stakes documents (patent disclosures, PRDs, legal briefs) via\
+    \ an Extract \u2192 RedTeam \u2192 Interview \u2192 Integrate \u2192 Promote flow.\n"
+  inputs:
+  - data_type: plain_text_transcript
+    source_id: human_operator
+  outputs:
+  - data_type: approved_document
+    target_id: human_operator
+  edges:
+    depends_on: []
+    implements: []
+- id: workspace_init
+  dimension: Module
+  status: clean
+  associated_file: spec/compiled/MiniPRD_WorkspaceInit.md
+  description: "init_workspace.py \u2014 Scaffolds a fully isolated per-job workspace\
+    \ directory. Validates all referenced persona and template files before touching\
+    \ the filesystem, guards against overwriting existing workspaces, creates the\
+    \ canonical subdirectory structure, writes a minimal state_graph.yml, and appends\
+    \ the workspace to .agents/workspace_registry.yml.\n"
+  inputs:
+  - data_type: cli_args
+    source_id: human_operator
+  - data_type: persona_files
+    source_id: persona_library
+  - data_type: template_files
+    source_id: template_library
+  outputs:
+  - data_type: workspace_directory
+    target_id: orchestrator_core
+  - data_type: registry_entry
+    target_id: workspace_registry
+  edges:
+    depends_on:
+    - workspace_registry
+    - persona_library
+    - template_library
+    implements:
+    - orchestrator_system
+- id: orchestrator_core
+  dimension: Module
+  status: clean
+  associated_file: spec/compiled/MiniPRD_Orchestrator.md
+  description: "orchestrator.py \u2014 YAML-driven state machine loop. Acquires a\
+    \ lockfile at startup; performs pre-flight validation (missing files, symlink scan,\
+    \ confidence_score < 7 warning); snapshots persona files into personas_snapshot/\
+    \ before the loop; advances each module through pending_extraction \u2192 extracted\
+    \ \u2192 pending_interview \u2192 pending_integration \u2192 integrated by invoking\
+    \ claude /{skill} --workspace <path> subprocesses; writes state_graph.yml atomically\
+    \ via state_graph_schema.save_state(); halts at pending_interview for human input;\
+    \ exposes --reset <module_id> to archive compiled output via archive_manager.archive_compiled()\
+    \ and revert to pending_integration.\n"
+  inputs:
+  - data_type: state_graph_yml
+    source_id: workspace_init
+  - data_type: persona_files
+    source_id: persona_library
+  - data_type: template_files
+    source_id: template_library
+  outputs:
+  - data_type: state_graph_yml
+    target_id: audit_state
+  - data_type: personas_snapshot_dir
+    target_id: persona_snapshot
+  - data_type: subprocess_invocation_with_workspace
+    target_id: skill_extract
+  - data_type: subprocess_invocation_with_workspace
+    target_id: skill_redteam
+  - data_type: subprocess_invocation_with_workspace
+    target_id: skill_integrate
+  - data_type: archived_compiled_file
+    target_id: archive_manager
+  edges:
+    depends_on:
+    - workspace_init
+    - workspace_registry
+    - persona_library
+    - template_library
+    - state_graph_schema
+    - archive_manager
+    implements:
+    - orchestrator_system
+- id: audit_state
+  dimension: Module
+  status: clean
+  associated_file: spec/compiled/MiniPRD_AuditState.md
+  description: "audit_state.py \u2014 Reconciles state_graph.yml against the actual\
+    \ filesystem. Detects and reports failed or drifted modules after a crash or manual\
+    \ file move, prints a human-readable diff, and writes corrected statuses back\
+    \ to state_graph.yml atomically.\n"
+  inputs:
+  - data_type: state_graph_yml
+    source_id: orchestrator_core
+  - data_type: filesystem_scan
+    source_id: workspace_init
+  outputs:
+  - data_type: reconciled_state_graph_yml
+    target_id: orchestrator_core
+  edges:
+    depends_on:
+    - orchestrator_core
+    implements:
+    - orchestrator_system
+- id: archive_manager
+  dimension: Module
+  status: clean
+  associated_file: spec/compiled/MiniPRD_ArchiveManager.md
+  description: "archive_manager.py \u2014 Exposes archive_draft(module_id, workspace_path)\
+    \ and archive_compiled(module_id, workspace_path). Both move their respective\
+    \ source files (active/draft_*.md and compiled/final_*.md) to archive/ with\
+    \ microsecond-precision timestamps (%Y%m%d_%H%M%S_%f) to prevent collision.\
+    \ Logs INFO and returns gracefully if the source file is absent. Only this module\
+    \ may write to archive/; all other agents are blocked by .agentignore.\n"
+  inputs:
+  - data_type: active_draft_files
+    source_id: orchestrator_core
+  - data_type: compiled_output_files
+    source_id: orchestrator_core
+  outputs:
+  - data_type: archived_draft_files
+    target_id: orchestrator_system
+  - data_type: archived_compiled_files
+    target_id: orchestrator_system
+  edges:
+    depends_on:
+    - orchestrator_core
+    implements:
+    - orchestrator_system
+- id: workspace_registry
+  dimension: Module
+  status: clean
+  associated_file: .agents/workspace_registry.yml
+  description: ".agents/workspace_registry.yml \u2014 Global index of all initialized\
+    \ job workspaces. Appended by init_workspace.py on each successful workspace creation.\
+    \ Read by /forge_persona --update to warn when an active job references a persona\
+    \ being modified.\n"
+  inputs:
+  - data_type: workspace_path
+    source_id: workspace_init
+  outputs:
+  - data_type: workspace_list
+    target_id: skill_forge_persona
+  edges:
+    depends_on: []
+    implements:
+    - orchestrator_system
+- id: persona_library
+  dimension: Module
+  status: clean
+  associated_file: .agents/schemas/personas/
+  description: ".agents/schemas/personas/ \u2014 Versioned global store of adversarial\
+    \ persona Markdown files. Each file carries a version number and changelog. Validated\
+    \ at init_workspace.py and orchestrator.py pre-flight. Written by /forge_persona;\
+    \ snapshotted into workspace/personas_snapshot/ at pipeline start.\n"
+  inputs:
+  - data_type: persona_definition
+    source_id: skill_forge_persona
+  outputs:
+  - data_type: persona_files
+    target_id: workspace_init
+  - data_type: persona_files
+    target_id: persona_snapshot
+  - data_type: persona_files
+    target_id: skill_redteam
+  edges:
+    depends_on: []
+    implements:
+    - orchestrator_system
+- id: persona_snapshot
+  dimension: Module
+  status: clean
+  associated_file: spec/compiled/MiniPRD_ForgePersona.md
+  description: "<workspace>/personas_snapshot/ \u2014 Run-time isolation copy of all\
+    \ persona files used by a job. Copied from the global persona_library at orchestrator\
+    \ start. Ensures live mutations to the library have no effect on running jobs.\n"
+  inputs:
+  - data_type: persona_files
+    source_id: persona_library
+  outputs:
+  - data_type: frozen_persona_files
+    target_id: orchestrator_core
+  edges:
+    depends_on:
+    - persona_library
+    implements:
+    - orchestrator_system
+- id: template_library
+  dimension: Module
+  status: clean
+  associated_file: .agents/schemas/templates/
+  description: ".agents/schemas/templates/ \u2014 Document type template Markdown\
+    \ files. Each template must have at least one ## section heading and one [Insert\
+    \ from transcript] placeholder (enforced by validate_template()). Written by /template-architect;\
+    \ read by /extract and orchestrator pre-flight.\n"
+  inputs:
+  - data_type: template_definition
+    source_id: skill_template_architect
+  outputs:
+  - data_type: template_files
+    target_id: workspace_init
+  - data_type: template_files
+    target_id: skill_extract
+  edges:
+    depends_on: []
+    implements:
+    - orchestrator_system
+- id: candidate_output_protocol
+  dimension: Module
+  status: clean
+  associated_file: spec/compiled/MiniPRD_Promote.md
+  description: 'tests/candidate_outputs/ + tests/fixtures/ review workflow. All AI-generated
+    outputs are routed to candidate_outputs/ first. The /promote skill presents them
+    for operator APPROVE/REJECT review. APPROVE moves to tests/fixtures/ (ground truth);
+    REJECT logs reason and flags module for re-run. No automatic promotion ever occurs.
+
+    '
+  inputs:
+  - data_type: candidate_draft
+    source_id: skill_extract
+  - data_type: candidate_questionnaire
+    source_id: skill_redteam
+  - data_type: candidate_compiled
+    source_id: skill_integrate
+  outputs:
+  - data_type: approved_fixture
+    target_id: orchestrator_core
+  edges:
+    depends_on:
+    - skill_extract
+    - skill_redteam
+    - skill_integrate
+    implements:
+    - orchestrator_system
+- id: skill_template_architect
+  dimension: Module
+  status: clean
+  associated_file: spec/compiled/MiniPRD_TemplateArchitect.md
+  description: "/template-architect slash command \u2014 Guides the operator through\
+    \ a structured interview to produce a validated Markdown template file for a new\
+    \ document type. Writes the output to .agents/schemas/templates/ after validate_template()\
+    \ passes.\n"
+  inputs:
+  - data_type: operator_interview_answers
+    source_id: human_operator
+  outputs:
+  - data_type: template_md_file
+    target_id: template_library
+  edges:
+    depends_on:
+    - template_library
+    implements:
+    - orchestrator_system
+- id: skill_forge_persona
+  dimension: Module
+  status: clean
+  associated_file: spec/compiled/MiniPRD_ForgePersona.md
+  description: "/forge_persona slash command \u2014 Creates or updates adversarial\
+    \ persona files via guided interview. On --update, checks workspace_registry for\
+    \ active jobs using the persona and warns operator. Writes to .agents/schemas/personas/\
+    \ with version and changelog.\n"
+  inputs:
+  - data_type: operator_interview_answers
+    source_id: human_operator
+  - data_type: workspace_list
+    source_id: workspace_registry
+  outputs:
+  - data_type: persona_md_file
+    target_id: persona_library
+  edges:
+    depends_on:
+    - persona_library
+    - workspace_registry
+    implements:
+    - orchestrator_system
+- id: skill_extract
+  dimension: Module
+  status: clean
+  associated_file: spec/compiled/MiniPRD_Extract.md
+  description: "/extract [module_id] slash command \u2014 Maps transcripts/raw_input.md\
+    \ to the module's template schema. Writes [NEEDS_CLARIFICATION] for any missing\
+    \ data. Routes output to tests/candidate_outputs/. Advances state_graph.yml status\
+    \ to extracted.\n"
+  inputs:
+  - data_type: raw_transcript
+    source_id: orchestrator_core
+  - data_type: template_file
+    source_id: template_library
+  outputs:
+  - data_type: draft_md
+    target_id: candidate_output_protocol
+  - data_type: state_update
+    target_id: orchestrator_core
+  edges:
+    depends_on:
+    - orchestrator_core
+    - template_library
+    implements:
+    - orchestrator_system
+- id: skill_redteam
+  dimension: Module
+  status: clean
+  associated_file: spec/compiled/MiniPRD_RedTeam.md
+  description: "/redteam [module_id] [persona_id] slash command \u2014 Appends adversarial\
+    \ questions from a persona to the master questionnaire. Hard cap of 50 total questions\
+    \ across all personas per module; truncates with warning if exceeded. Routes questionnaire\
+    \ to tests/candidate_outputs/.\n"
+  inputs:
+  - data_type: draft_md
+    source_id: skill_extract
+  - data_type: persona_file
+    source_id: persona_library
+  outputs:
+  - data_type: master_questionnaire
+    target_id: candidate_output_protocol
+  - data_type: state_update
+    target_id: orchestrator_core
+  edges:
+    depends_on:
+    - orchestrator_core
+    - persona_library
+    implements:
+    - orchestrator_system
+- id: skill_interview
+  dimension: Module
+  status: clean
+  associated_file: spec/compiled/MiniPRD_Interview.md
+  description: "/interview [module_id] slash command \u2014 Paces Q&A 3 questions\
+    \ at a time. Operator types DONE to pause; adversarial_state.last_answered_index\
+    \ saved to state_graph.yml enabling resume across sessions. Appends answers to\
+    \ transcripts/module_[id]_answers.md.\n"
+  inputs:
+  - data_type: master_questionnaire
+    source_id: skill_redteam
+  - data_type: operator_answers
+    source_id: human_operator
+  outputs:
+  - data_type: answers_transcript
+    target_id: skill_integrate
+  - data_type: state_update
+    target_id: orchestrator_core
+  edges:
+    depends_on:
+    - orchestrator_core
+    implements:
+    - orchestrator_system
+- id: skill_integrate
+  dimension: Module
+  status: clean
+  associated_file: spec/compiled/MiniPRD_Integrate.md
+  description: "/integrate [module_id] slash command \u2014 Synthesizes the final\
+    \ compiled document section from the approved draft and Q&A answers transcript.\
+    \ Writes compiled/final_[module_id].md and routes to tests/candidate_outputs/.\n"
+  inputs:
+  - data_type: draft_md
+    source_id: skill_extract
+  - data_type: answers_transcript
+    source_id: skill_interview
+  outputs:
+  - data_type: final_compiled_md
+    target_id: candidate_output_protocol
+  - data_type: state_update
+    target_id: orchestrator_core
+  edges:
+    depends_on:
+    - orchestrator_core
+    implements:
+    - orchestrator_system
+- id: skill_promote
+  dimension: Module
+  status: clean
+  associated_file: spec/compiled/MiniPRD_Promote.md
+  description: "/promote [module_id] slash command \u2014 Presents each file in tests/candidate_outputs/\
+    \ for human APPROVE/REJECT review. APPROVE moves file to tests/fixtures/ and logs\
+    \ event to state_graph.yml. REJECT logs reason and flags module for re-run. Never\
+    \ promotes automatically.\n"
+  inputs:
+  - data_type: candidate_outputs
+    source_id: candidate_output_protocol
+  - data_type: operator_decision
+    source_id: human_operator
+  outputs:
+  - data_type: approved_fixture
+    target_id: candidate_output_protocol
+  - data_type: state_update
+    target_id: orchestrator_core
+  edges:
+    depends_on:
+    - orchestrator_core
+    - candidate_output_protocol
+    implements:
+    - orchestrator_system
+- id: fn_create_workspace
+  dimension: Atomic
+  status: clean
+  associated_file: init_workspace.py
+  description: "create_workspace() \u2014 Orchestrates the full workspace creation\
+    \ flow: guards against overwriting, calls validators, creates subdirs, writes\
+    \ state_graph.yml, ensures test dirs, appends to registry, prints summary. All\
+    \ validation runs before any filesystem write.\n"
+  inputs:
+  - data_type: job_name_str
+    source_id: fn_build_parser
+  - data_type: persona_ids_list
+    source_id: fn_build_parser
+  - data_type: template_ids_list
+    source_id: fn_build_parser
+  outputs:
+  - data_type: workspace_directory
+    target_id: workspace_init
+  edges:
+    depends_on:
+    - fn_validate_persona_ids
+    - fn_validate_template_ids
+    - fn_workspace_exists
+    - fn_wipe_workspace
+    implements:
+    - workspace_init
+- id: fn_validate_template
+  dimension: Atomic
+  status: clean
+  associated_file: init_workspace.py
+  description: "validate_template(path) \u2014 Reads a template .md file and asserts:\
+    \ (a) at least one ## section heading exists, (b) [Insert from transcript] placeholder\
+    \ exists. Returns True or raises ValueError with the failing check description.\n"
+  inputs:
+  - data_type: template_path
+    source_id: fn_validate_template_ids
+  outputs:
+  - data_type: bool_or_value_error
+    target_id: fn_validate_template_ids
+  edges:
+    depends_on: []
+    implements:
+    - workspace_init
+- id: fn_validate_persona_ids
+  dimension: Atomic
+  status: clean
+  associated_file: init_workspace.py
+  description: "validate_persona_ids(persona_ids, repo_root) \u2014 Checks each persona\
+    \ ID resolves to <repo>/.agents/schemas/personas/<id>.md. Collects all missing\
+    \ paths and fails loudly with a complete list if any are not found.\n"
+  inputs:
+  - data_type: persona_ids_list
+    source_id: fn_create_workspace
+  outputs:
+  - data_type: sys_exit_or_none
+    target_id: fn_create_workspace
+  edges:
+    depends_on:
+    - persona_library
+    implements:
+    - workspace_init
+- id: fn_validate_template_ids
+  dimension: Atomic
+  status: clean
+  associated_file: init_workspace.py
+  description: "validate_template_ids(template_ids, repo_root) \u2014 Checks each\
+    \ template ID resolves to <repo>/.agents/schemas/templates/<id>.md and passes\
+    \ validate_template() content checks. Reports all missing and invalid files before\
+    \ exiting.\n"
+  inputs:
+  - data_type: template_ids_list
+    source_id: fn_create_workspace
+  outputs:
+  - data_type: sys_exit_or_none
+    target_id: fn_create_workspace
+  edges:
+    depends_on:
+    - fn_validate_template
+    - template_library
+    implements:
+    - workspace_init
+- id: fn_workspace_exists
+  dimension: Atomic
+  status: clean
+  associated_file: init_workspace.py
+  description: "workspace_exists(workspace_dir) \u2014 Returns True if the directory\
+    \ exists and contains a state_graph.yml. Used as the safety predicate before any\
+    \ wipe operation to prevent accidental deletion of unrelated directories.\n"
+  inputs:
+  - data_type: workspace_path
+    source_id: fn_create_workspace
+  outputs:
+  - data_type: bool
+    target_id: fn_create_workspace
+  edges:
+    depends_on: []
+    implements:
+    - workspace_init
+- id: fn_wipe_workspace
+  dimension: Atomic
+  status: clean
+  associated_file: init_workspace.py
+  description: "wipe_workspace(workspace_dir) \u2014 Calls shutil.rmtree only after\
+    \ confirming the directory is a valid workspace (contains state_graph.yml). Aborts\
+    \ with sys.exit if the directory is not a confirmed workspace, preventing blast\
+    \ radius on unrelated directories.\n"
+  inputs:
+  - data_type: confirmed_workspace_path
+    source_id: fn_create_workspace
+  outputs:
+  - data_type: void
+    target_id: fn_create_workspace
+  edges:
+    depends_on:
+    - fn_workspace_exists
+    implements:
+    - workspace_init
+- id: fn_build_parser
+  dimension: Atomic
+  status: clean
+  associated_file: init_workspace.py
+  description: "build_parser() \u2014 Configures and returns the argparse.ArgumentParser\
+    \ for init_workspace.py. Defines: job_name (positional), --workspace-root (optional\
+    \ path), --force (flag), --personas (repeatable IDs), --templates (repeatable\
+    \ IDs).\n"
+  inputs:
+  - data_type: sys_argv
+    source_id: human_operator
+  outputs:
+  - data_type: parsed_args
+    target_id: fn_create_workspace
+  edges:
+    depends_on: []
+    implements:
+    - workspace_init
+- id: fn_propagate_blast_radius
+  dimension: Atomic
+  status: clean
+  associated_file: .agents/scripts/hypergraph_updater.py
+  description: "propagate_blast_radius(yaml_path, dirty_node_ids) \u2014 Loads architecture.yml,\
+    \ marks target nodes as dirty, then BFS-propagates needs_review status to all\
+    \ parent (implements) and dependent (depends_on) nodes. Writes updated YAML in-place.\
+    \ Used by Builder agents after every code change.\n"
+  inputs:
+  - data_type: architecture_yml_path
+    source_id: human_operator
+  - data_type: dirty_node_ids_list
+    source_id: human_operator
+  outputs:
+  - data_type: updated_architecture_yml
+    target_id: orchestrator_system
+  edges:
+    depends_on: []
+    implements:
+    - orchestrator_system
+- id: fn_archive_active_specs
+  dimension: Atomic
+  status: clean
+  associated_file: .agents/scripts/archive_specs.py
+  description: "archive_active_specs(feature_name) \u2014 Moves all non-.gitkeep files\
+    \ from spec/active/ to a timestamped subdirectory under spec/archive/. Restores\
+    \ .gitkeep to enforce the initialized-empty state. Called by the /resolve agent\
+    \ at the end of Phase 1.\n"
+  inputs:
+  - data_type: feature_name_str
+    source_id: human_operator
+  outputs:
+  - data_type: archived_spec_bundle
+    target_id: orchestrator_system
+  edges:
+    depends_on: []
+    implements:
+    - orchestrator_system
