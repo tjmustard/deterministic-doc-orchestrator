@@ -223,13 +223,14 @@ nodes:
 - id: candidate_output_protocol
   dimension: Module
   status: clean
-  associated_file: spec/compiled/MiniPRD_Promote.md
-  description: 'tests/candidate_outputs/ + tests/fixtures/ review workflow. All AI-generated
-    outputs are routed to candidate_outputs/ first. The /promote skill presents them
-    for operator APPROVE/REJECT review. APPROVE moves to tests/fixtures/ (ground truth);
-    REJECT logs reason and flags module for re-run. No automatic promotion ever occurs.
-
-    '
+  associated_file: promote.py
+  description: "tests/candidate_outputs/ + tests/fixtures/ review workflow. All AI-generated\
+    \ outputs are routed to candidate_outputs/ first. promote.py presents them for\
+    \ operator APPROVE/REJECT review. APPROVE moves to tests/fixtures/ (ground truth)\
+    \ and sets the corresponding approval flag (draft_approved, questions_approved,\
+    \ compiled_approved) in state_graph.yml. REJECT logs reason + ISO8601 timestamp\
+    \ to a rejections list on the module and resets status to pending_integration.\
+    \ No automatic promotion ever occurs.\n"
   inputs:
   - data_type: candidate_draft
     source_id: skill_extract
@@ -425,21 +426,32 @@ nodes:
 - id: skill_promote
   dimension: Module
   status: clean
-  associated_file: spec/compiled/MiniPRD_Promote.md
-  description: "/promote [module_id] slash command \u2014 Presents each file in tests/candidate_outputs/\
-    \ for human APPROVE/REJECT review. APPROVE moves file to tests/fixtures/ and logs\
-    \ event to state_graph.yml. REJECT logs reason and flags module for re-run. Never\
-    \ promotes automatically.\n"
+  associated_file: promote.py
+  description: "promote.py \u2014 Python CLI invoked as `python promote.py <module_id>\
+    \ --workspace <path>`. Loads state_graph.yml via load_state(); resolves existing\
+    \ candidate output files (draft_<id>.md, module_<id>_questions.md, final_<id>.md)\
+    \ from tests/candidate_outputs/ in pipeline order. Skips absent slots. For each\
+    \ present file: prints filename + full contents, prompts operator for APPROVE or\
+    \ REJECT <reason>. On APPROVE: shutil.move() to tests/fixtures/, sets corresponding\
+    \ candidate_outputs flag (draft_approved / questions_approved / compiled_approved)\
+    \ to True, saves state atomically. On REJECT: appends {file, reason, timestamp}\
+    \ to module.rejections list, resets status to pending_integration, saves state\
+    \ atomically, halts. On full loop completion: sets status to integrated, calls\
+    \ archive_manager.archive_draft(), prints confirmation.\n"
   inputs:
-  - data_type: candidate_outputs
+  - data_type: candidate_output_files
     source_id: candidate_output_protocol
+  - data_type: state_graph_yml
+    source_id: orchestrator_core
   - data_type: operator_decision
     source_id: human_operator
   outputs:
-  - data_type: approved_fixture
+  - data_type: approved_fixture_files
     target_id: candidate_output_protocol
   - data_type: state_update
     target_id: orchestrator_core
+  - data_type: archive_request
+    target_id: archive_manager
   edges:
     depends_on:
     - orchestrator_core

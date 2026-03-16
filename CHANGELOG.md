@@ -11,6 +11,14 @@ Versioning: `0.0.x` = pre-SuperPRD implementation increments. `0.1.0` = first co
 
 ---
 
+## [0.0.7] - 2026-03-15
+
+### Added
+- **`promote.py`** — Python CLI backing the `/promote` pipeline skill. Loads `state_graph.yml` via `load_state()`; resolves existing candidate output files (`draft_<id>.md`, `module_<id>_questions.md`, `final_<id>.md`) from `tests/candidate_outputs/` in pipeline order, skipping absent slots. For each present file: prints filename + full contents, prompts operator for `APPROVE` or `REJECT <reason>`. On `APPROVE`: `shutil.move()` to `tests/fixtures/`, sets the corresponding `candidate_outputs` flag (`draft_approved` / `questions_approved` / `compiled_approved`) to `true`, saves state atomically. On `REJECT`: appends `{"file", "reason", "timestamp": ISO8601}` to `module.rejections` list, resets status to `pending_integration`, saves state atomically, halts — remaining files are not reviewed. On full loop completion: sets status to `integrated`, calls `archive_manager.archive_draft()`, prints confirmation. If no candidate files are present, prints informative message and exits 0 with no state change. Supports `--repo-root` (hidden flag, test path isolation). Injectable `input_fn` parameter enables deterministic testing without subprocess.
+- **`tests/integration/test_promote.py`** — 8 tests: full APPROVE moves all three files to `tests/fixtures/`, sets all approval flags `true`, and advances status to `integrated`; APPROVE-then-REJECT halts after rejection, leaves final file in `candidate_outputs/`, logs rejection reason + timestamp, resets status to `pending_integration`; no candidate files exits cleanly with informative message; pre-existing `tests/fixtures/` file is untouched after partial approval. Plus unit tests for `resolve_pending_candidates()` (existence filter, pipeline order), `_ensure_candidate_outputs()` (initialises absent sub-dict), and `_append_rejection()` (initialises absent list).
+
+---
+
 ## [0.0.6] - 2026-03-15
 
 ### Added

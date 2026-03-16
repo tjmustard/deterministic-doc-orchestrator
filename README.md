@@ -194,6 +194,32 @@ Normally invoked by `orchestrator.py` after `pending_integration` status is reac
 
 ---
 
+### `promote.py` — review and approve candidate outputs
+
+```
+python promote.py <module_id> --workspace <path>
+```
+
+| Option | Description |
+|---|---|
+| `--workspace <path>` | Path to the workspace directory (required) |
+
+Loads `state_graph.yml`, then locates the three candidate output files for the module in `tests/candidate_outputs/` — `draft_<module_id>.md`, `module_<module_id>_questions.md`, and `final_<module_id>.md` — skipping any that do not exist. Presents each file's full contents to the operator in pipeline order (draft → questions → final) and prompts for an explicit decision.
+
+**On `APPROVE`:** moves the file to `tests/fixtures/` using `shutil.move()`, sets the corresponding approval flag (`candidate_outputs.draft_approved`, `questions_approved`, or `compiled_approved`) to `true` in `state_graph.yml`, and writes state atomically before prompting for the next file.
+
+**On `REJECT <reason>`:** appends `{"file": ..., "reason": ..., "timestamp": "<ISO8601>"}` to a `rejections` list on the module in `state_graph.yml`, resets module status to `pending_integration`, saves state atomically, and halts — remaining files are not reviewed. Fix the issue and re-run `/integrate`.
+
+If all pending candidate outputs are approved, sets module status to `integrated`, calls `archive_manager.archive_draft()` to flush the active draft, and prints confirmation.
+
+If no candidate output files are present, prints an informative message and exits cleanly with no state change.
+
+> **Note:** Nothing is ever automatically approved. `APPROVE` must be typed explicitly for each file. `tests/fixtures/` is append-only — `/promote` never deletes files from it.
+
+Normally invoked interactively by the operator after `/integrate` completes. Can be run standalone.
+
+---
+
 ### `audit_state.py` — reconcile state after a crash
 
 ```
@@ -288,7 +314,7 @@ The framework installs only files and directories into your repo — no system-l
 rm -rf .agents/ spec/ tests/ docs/ .agentignore
 
 # Python scripts (if added at repo root)
-rm -f init_workspace.py orchestrator.py audit_state.py archive_manager.py state_graph_schema.py extract.py redteam.py interview.py integrate.py
+rm -f init_workspace.py orchestrator.py audit_state.py archive_manager.py state_graph_schema.py extract.py redteam.py interview.py integrate.py promote.py
 
 # IDE-specific files — remove whichever you installed:
 rm -rf .claude/ .windsurf/ .cursor/ .clinerules/ .roo/
