@@ -136,6 +136,28 @@ Normally invoked by `orchestrator.py` via `claude /extract`. Can be run standalo
 
 ---
 
+### `redteam.py` — adversarial questionnaire generator
+
+```
+python redteam.py <module_id> <persona_id> --workspace <path>
+```
+
+| Option | Description |
+|---|---|
+| `--workspace <path>` | Path to the workspace directory (required) |
+
+Loads `state_graph.yml`, resolves `active/draft_<module_id>.md` (aborts if missing), and locates the persona from `personas_snapshot/<persona_id>.md` — falling back to `.agents/schemas/personas/<persona_id>.md` if no snapshot exists yet.
+
+Reads `active/module_<module_id>_questions.md` and counts existing numbered questions (`^\d+\.`) to calculate remaining capacity against `module.max_questions` (default 50). If capacity is exhausted, prints a WARNING and exits 0 without appending. Otherwise, calls `claude -p` with the persona framing + full draft content and generates adversarial questions targeting every claim, assumption, and `[NEEDS_CLARIFICATION]` marker.
+
+If the LLM generates more questions than the remaining capacity, truncates with a WARNING. Appends a `## Persona: <id>` header block to the questionnaire, copies the full questionnaire to `tests/candidate_outputs/`, and atomically sets `adversarial_state.status` to `interview_in_progress`.
+
+Multiple personas are run sequentially — call once per persona. The question cap is shared across all personas for a given module.
+
+Normally invoked by `orchestrator.py` for each persona in `applied_personas`. Can be run standalone for debugging or to add a persona mid-pipeline.
+
+---
+
 ### `interview.py` — resumable paced Q&A
 
 ```
@@ -246,7 +268,7 @@ The framework installs only files and directories into your repo — no system-l
 rm -rf .agents/ spec/ tests/ docs/ .agentignore
 
 # Python scripts (if added at repo root)
-rm -f init_workspace.py orchestrator.py audit_state.py archive_manager.py state_graph_schema.py extract.py interview.py
+rm -f init_workspace.py orchestrator.py audit_state.py archive_manager.py state_graph_schema.py extract.py redteam.py interview.py
 
 # IDE-specific files — remove whichever you installed:
 rm -rf .claude/ .windsurf/ .cursor/ .clinerules/ .roo/

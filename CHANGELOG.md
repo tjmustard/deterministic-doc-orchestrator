@@ -11,6 +11,14 @@ Versioning: `0.0.x` = pre-SuperPRD implementation increments. `0.1.0` = first co
 
 ---
 
+## [0.0.5] - 2026-03-15
+
+### Added
+- **`redteam.py`** — Python CLI backing the `/redteam` pipeline skill. Loads `state_graph.yml`, resolves `active/draft_<module_id>.md` (aborts exit 1 if missing), and resolves the persona file from `personas_snapshot/<id>.md` with fallback to `.agents/schemas/personas/<id>.md`. Reads `active/module_<module_id>_questions.md` (if exists) and counts numbered lines (`^\d+\.`) to calculate remaining capacity against `module.max_questions` (default 50). If `remaining_capacity <= 0`, prints a cap-reached WARNING and exits 0 without appending. Otherwise constructs a red-team prompt (persona content + full draft + generation instruction referencing `[NEEDS_CLARIFICATION]`) and invokes `claude -p`. Parses numbered lines from LLM output; truncates with WARNING if count exceeds remaining capacity. Appends `\n## Persona: <id>\n<questions>\n` to the questionnaire. Copies the full questionnaire to `tests/candidate_outputs/`. Sets `adversarial_state.status` to `interview_in_progress` atomically via `save_state()`. Prints persona ID, questions added, total count, and remaining capacity. Supports `--mock-redteam` (hidden flag, always returns 5 deterministic questions for test coverage of truncation path) and `--repo-root` (test path isolation).
+- **`tests/integration/test_redteam.py`** — 10 tests (1 novel skipped): cap-reached exits 0 with WARNING and no append; truncation warning when generated count exceeds remaining capacity; `[NEEDS_CLARIFICATION]` marker in draft surfaces in questionnaire output; plus unit tests for `count_existing_questions()`, `parse_generated_questions()`, `resolve_persona_path()` (snapshot preference, global fallback, missing persona exit 1).
+
+---
+
 ## [0.0.4] - 2026-03-15
 
 ### Added

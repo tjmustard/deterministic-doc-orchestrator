@@ -1,5 +1,6 @@
 
 # Active Context
+
 ## Purpose
 This file updates dynamically after *every task completion*. It captures the "Now" of the project: what was just done, what is currently being worked on, and any immediate blockers or open questions.
 
@@ -8,10 +9,25 @@ This file updates dynamically after *every task completion*. It captures the "No
 - Agent reads this *first* to understand where to pick up.
 
 ## Current Sprint Goal
-- [ ] Define Sprint Goal here.
+- Implement all pending MiniPRDs to reach v0.1.0 (first complete SuperPRD fulfillment).
 
-## Recent Decisions
-- [Decision 1]: [Rationale]
+## Recently Completed (2026-03-15)
+- `redteam.py` implemented and audited (v0.0.5). MiniPRD archived to `spec/archive/`.
+- `interview.py` implemented and audited (v0.0.4).
+- `extract.py` implemented and audited (v0.0.3).
+- Core pipeline (`orchestrator.py`, `archive_manager.py`, `state_graph_schema.py`) implemented (v0.0.1–0.0.2).
+
+## Pending MiniPRDs (in pipeline order)
+
+| MiniPRD | Spec File | Status |
+|---|---|---|
+| MiniPRD_Integrate | spec/compiled/MiniPRD_Integrate.md | pending |
+| MiniPRD_Promote | spec/compiled/MiniPRD_Promote.md | pending |
+| MiniPRD_TemplateArchitect | spec/compiled/MiniPRD_TemplateArchitect.md | pending |
+| MiniPRD_ForgePersona | spec/compiled/MiniPRD_ForgePersona.md | pending |
 
 ## Next Steps
-- [ ] Task 1
+- [ ] `/hyper-execute MiniPRD_Integrate` — synthesize final compiled doc from draft + Q&A answers
+- [ ] `/hyper-execute MiniPRD_Promote` — APPROVE/REJECT candidate outputs workflow
+- [ ] `/hyper-execute MiniPRD_TemplateArchitect` — guided interview to produce validated templates
+- [ ] `/hyper-execute MiniPRD_ForgePersona` — versioned persona creation/update workflow

@@ -1,11 +1,10 @@
 ---
-name: hyper-redteam
-description: Stress-tests the Draft PRD for security, scalability, and logic flaws. Framework-level architectural red-team for the Hypergraph development workflow.
+name: redteam
+description: Performs an adversarial Blast Radius and vulnerability analysis on the Draft PRD.
 trigger: /hyper-redteam
 ---
 
 # ROLE: The Red Team Agent
-
 Your objective is to perform a hostile but constructive analysis of the Draft PRD located in `spec/active/Draft_PRD.md`. You evaluate this document against rigorous distributed systems engineering principles, security standards (OWASP), and scalability heuristics.
 
 ## INPUTS TO ANALYZE
@@ -17,7 +16,7 @@ Your objective is to perform a hostile but constructive analysis of the Draft PR
 2. **The "Unknown Unknowns":** Hunt for missing Non-Functional Requirements (NFRs) like rate limits, data retention, and TTLs that the Architect missed.
 
 ## EXECUTION PHASE & OUTPUT FORMAT
-Generate a comprehensive report titled `RedTeam_Report.md` and save it to `spec/active/RedTeam_Report.md`.
+Generate a comprehensive report titled `RedTeam_Report.md` and save it to `spec/active/RedTeam_Report.md`. 
 
 For EACH major section in the Draft PRD, generate a dedicated analysis block containing strictly these three subsections:
 
@@ -26,4 +25,4 @@ For EACH major section in the Draft PRD, generate a dedicated analysis block con
 * **What-If Scenarios:** Propose catastrophic edge cases, malicious actor scenarios, race conditions, or state mutation conflicts relevant to this section.
 * **Points for Improvement:** Suggest actionable architectural improvements or missing NFRs to harden this section.
 
-**Final Action:** Once saved, instruct the user to run `/resolve` to begin triaging the vulnerabilities.
+**Final Action:** Once saved, instruct the user to run `/hyper-resolve` to begin triaging the vulnerabilities.

@@ -328,19 +328,32 @@ nodes:
 - id: skill_redteam
   dimension: Module
   status: clean
-  associated_file: spec/compiled/MiniPRD_RedTeam.md
-  description: "/redteam [module_id] [persona_id] slash command \u2014 Appends adversarial\
-    \ questions from a persona to the master questionnaire. Hard cap of 50 total questions\
-    \ across all personas per module; truncates with warning if exceeded. Routes questionnaire\
-    \ to tests/candidate_outputs/.\n"
+  associated_file: redteam.py
+  description: "redteam.py \u2014 Python CLI invoked as `python redteam.py <module_id>\
+    \ <persona_id> --workspace <path>`. Loads state_graph.yml via load_state(); resolves\
+    \ active/draft_<module_id>.md (aborts with exit 1 if missing); resolves persona\
+    \ from personas_snapshot/<id>.md with fallback to .agents/schemas/personas/<id>.md.\
+    \ Reads active/module_<module_id>_questions.md (if exists) and counts numbered\
+    \ lines (^\\d+\\.) to calculate remaining capacity against module.max_questions\
+    \ (default 50). If remaining_capacity <= 0, prints cap-reached WARNING and exits\
+    \ 0. Otherwise constructs prompt (persona content + draft + generation instruction)\
+    \ and invokes `claude -p` subprocess. Parses numbered lines from LLM output;\
+    \ truncates with WARNING if count > remaining_capacity. Appends \\n## Persona:\
+    \ <id>\\n<questions>\\n to questionnaire. Copies full questionnaire to tests/candidate_outputs/.\
+    \ Sets adversarial_state.status to interview_in_progress atomically via save_state().\
+    \ Prints persona, questions added, total, and remaining capacity.\n"
   inputs:
   - data_type: draft_md
     source_id: skill_extract
   - data_type: persona_file
-    source_id: persona_library
+    source_id: persona_snapshot
+  - data_type: state_graph_yml
+    source_id: orchestrator_core
   outputs:
-  - data_type: master_questionnaire
+  - data_type: master_questionnaire_md
     target_id: candidate_output_protocol
+  - data_type: master_questionnaire_md_copy
+    target_id: skill_interview
   - data_type: state_update
     target_id: orchestrator_core
   edges:
@@ -355,14 +368,14 @@ nodes:
   associated_file: interview.py
   description: "interview.py \u2014 Python CLI invoked as `python interview.py <module_id>\
     \ --workspace <path>`. Loads state_graph.yml and reads adversarial_state.last_answered_index\
-    \ (default 0). Parses active/module_<id>_questions.md for numbered questions (^\\d+\\.).\
-    \ Offers a pre-session DONE gate before presenting any questions, enabling Test 5\
-    \ (pause without answering). Presents unanswered questions in batches of 3; after every\
-    \ 3rd answer (when more remain) prompts DONE/continue. Appends each answer to\
-    \ transcripts/module_<id>_answers.md and atomically saves last_answered_index to\
-    \ state_graph.yml after each answer. On full completion, validates answers file grew\
-    \ then sets module status to pending_integration and adversarial_state.status to\
-    \ ready_for_integration. Never modifies the questionnaire file.\n"
+    \ (default 0). Parses active/module_<id>_questions.md for numbered questions (^\\\
+    d+\\.). Offers a pre-session DONE gate before presenting any questions, enabling\
+    \ Test 5 (pause without answering). Presents unanswered questions in batches of\
+    \ 3; after every 3rd answer (when more remain) prompts DONE/continue. Appends\
+    \ each answer to transcripts/module_<id>_answers.md and atomically saves last_answered_index\
+    \ to state_graph.yml after each answer. On full completion, validates answers\
+    \ file grew then sets module status to pending_integration and adversarial_state.status\
+    \ to ready_for_integration. Never modifies the questionnaire file.\n"
   inputs:
   - data_type: master_questionnaire_md
     source_id: skill_redteam
