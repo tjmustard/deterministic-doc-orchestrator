@@ -11,6 +11,13 @@ Versioning: `0.0.x` = pre-SuperPRD implementation increments. `0.1.0` = first co
 
 ---
 
+## [0.0.9] - 2026-03-15
+
+### Added
+- **`/forge_persona`** — formally audited and archived `MiniPRD_ForgePersona`. All pipeline MiniPRDs from the SuperPRD are now complete. The skill (SKILL.md + `.claude/commands/forge_persona.md`) was scaffolded at v0.0.3; this release closes the audit loop: 3-batch CREATE interview, anti-overwrite check, operator CONFIRM gate, versioned frontmatter, `workspace_registry.yml` active-job warning on `--update`, timestamped changelog append, diff summary on save.
+
+---
+
 ## [0.0.8] - 2026-03-15
 
 ### Added
