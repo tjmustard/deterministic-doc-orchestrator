@@ -1,8 +1,10 @@
 # deterministic-doc-orchestrator
 
-A multi-agent CLI pipeline that uses deterministic YAML-driven state management to generate and rigorously stress-test complex technical documents (patent disclosures, PRDs, legal briefs, and more).
+A multi-agent CLI pipeline that uses deterministic YAML-driven state management to generate and rigorously stress-test any complex technical document.
 
 LLM reasoning is strictly confined to individual skill steps. All routing, state transitions, and file management are handled by deterministic Python — no AI ever decides what happens next.
+
+> **Document-type agnostic.** The pipeline has no built-in knowledge of any document domain. Configure it for any document type by defining a template (via `/template-architect`) and one or more adversarial reviewer personas (via `/forge_persona`).
 
 ---
 
@@ -50,18 +52,18 @@ bash install.sh -y       # accepts all updates
 
 ```bash
 # 1. Scaffold a workspace for a new job
-python init_workspace.py my_patent \
-  --personas patent_examiner skeptic \
-  --templates invention_disclosure
+python init_workspace.py my_document \
+  --personas document_examiner skeptic \
+  --templates my_document
 
 # 2. Run the orchestrator — it drives the full pipeline automatically
-python orchestrator.py --workspace ./my_patent
+python orchestrator.py --workspace ./my_document
 
 # 3. The orchestrator halts at pending_interview. Run the interview skill,
 #    then re-run the orchestrator to continue.
 
 # 4. After integration, review and approve outputs
-#    /promote my_patent_module   (in your agentic IDE)
+#    /promote my_document_module   (in your agentic IDE)
 ```
 
 ---
@@ -333,5 +335,5 @@ pip uninstall pyyaml
 
 ```bash
 # Example — adjust paths per your registry
-rm -rf ./my_patent ./my_prd
+rm -rf ./my_document ./my_prd
 ```

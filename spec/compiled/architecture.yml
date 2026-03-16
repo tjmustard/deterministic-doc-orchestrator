@@ -5,7 +5,7 @@ nodes:
   associated_file: .agents/memory/systemPatterns.md
   description: "The Deterministic Document Orchestrator \u2014 a multi-agent CLI pipeline\
     \ that decouples LLM reasoning from deterministic YAML-driven state management\
-    \ to produce high-stakes documents (patent disclosures, PRDs, legal briefs) via\
+    \ to produce high-stakes documents (PRDs, design docs, technical specs) via\
     \ an Extract \u2192 RedTeam \u2192 Interview \u2192 Integrate \u2192 Promote flow.\n"
   inputs:
   - data_type: plain_text_transcript

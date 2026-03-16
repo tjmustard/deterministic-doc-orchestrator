@@ -32,7 +32,7 @@
 * **DO NOT** write non-atomically to `state_graph.yml`.
 
 ## 5. Integration Tests & Verification
-* **Test 1 (Novel):** Run `/redteam novelty patent_examiner_adversary --workspace ./test_job` with a valid draft. Expected: questions appended to `active/module_novelty_questions.md` under a `## Persona: patent_examiner_adversary` header; questionnaire copied to `tests/candidate_outputs/`; `adversarial_state.status = interview_in_progress` — Candidate Artifact routing protocol triggered.
+* **Test 1 (Novel):** Run `/redteam novelty document_examiner_adversary --workspace ./test_job` with a valid draft. Expected: questions appended to `active/module_novelty_questions.md` under a `## Persona: document_examiner_adversary` header; questionnaire copied to `tests/candidate_outputs/`; `adversarial_state.status = interview_in_progress` — Candidate Artifact routing protocol triggered.
 * **Test 2 (Deterministic):** Run `/redteam novelty commercial_lead --workspace ./test_job` when the questionnaire already has 50 questions. Expected: prints cap-reached warning; no questions appended; exits with code 0.
 * **Test 3 (Deterministic):** Run with a persona that generates 40 questions when only 15 capacity remains. Expected: output is truncated to 15; truncation warning printed.
 * **Test 4 (Deterministic):** Verify `[NEEDS_CLARIFICATION]` in the draft is included in the prompt context and results in at least one question targeting the unclear section.

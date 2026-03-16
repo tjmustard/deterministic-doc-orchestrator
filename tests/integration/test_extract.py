@@ -110,7 +110,7 @@ def test_novel_extraction_creates_populated_draft(tmp_path: Path) -> None:
     """Test 1: Full extraction with real Claude produces a populated draft."""
     workspace = make_workspace(tmp_path)
     (workspace / "transcripts" / "raw_input.md").write_text(
-        "The invention relates to a self-healing polymer composite material "
+        "The document describes a self-healing polymer composite material "
         "that recovers its original shape after deformation. "
         "Key claims: (1) polymer matrix with embedded microencapsulated healing agents, "
         "(2) recovery time under 60 seconds at room temperature.",
@@ -193,7 +193,7 @@ def test_partial_transcript_warns_and_advances(tmp_path: Path) -> None:
     """
     workspace = make_workspace(tmp_path)
     (workspace / "transcripts" / "raw_input.md").write_text(
-        "Only partial information about the invention background is available.",
+        "Only partial information about the document background is available.",
         encoding="utf-8",
     )
 

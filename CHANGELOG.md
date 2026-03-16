@@ -11,6 +11,23 @@ Versioning: `0.0.x` = pre-SuperPRD implementation increments. `0.1.0` = first co
 
 ---
 
+## [0.0.10] - 2026-03-15
+
+### Added
+- **`tests/integration/test_state_graph_schema.py`** — 9 deterministic tests covering all MiniPRD_StateGraph §5 scenarios: `load_state()` missing file exits with code 1 and prints `"State graph not found"`; invalid YAML exits with code 1; `save_state()` leaves no stale `.tmp` file after a clean write; save/load roundtrip preserves data faithfully; `set_module_status()` raises `ValueError` for any status outside `VALID_STATUSES`; accepts every valid status; `get_module()` raises `KeyError` containing the missing module ID.
+- **`tests/integration/test_archive_manager.py`** — 5 deterministic tests covering all MiniPRD_ArchiveManager §5 scenarios: `archive_draft()` moves the source file and removes it from `active/`; two rapid sequential calls produce distinct filenames (microsecond collision prevention); missing source file prints `INFO` and returns without exception and without creating `archive/`; archived filename matches `^\d{8}_\d{6}_\d{6}_draft_\w+\.md$`.
+- **`tests/integration/test_audit_state.py`** — 10 deterministic tests covering all MiniPRD_AuditState §5 scenarios: Rule 1 (compiled exists) forces status to `integrated` and persists to disk; Rule 2 (draft missing) reverts status to `pending_extraction` but does not revert when draft is present; Rule 3 (failed module) emits `AUDIT ALERT` and leaves status unchanged; Rule 4 (stale lockfile) emits `AUDIT ALERT` and does not delete the file; Rule 5 (consistent workspace) returns empty changes/alerts and `print_summary()` prints "consistent".
+- **`tests/integration/test_orchestrator.py`** — 17 deterministic tests covering all MiniPRD_Orchestrator §5 scenarios: existing lockfile aborts with non-zero exit and error message, does not delete the pre-existing lock; pre-flight aborts on missing template file; pre-flight aborts on symlink in `active/` or `compiled/`; `--reset` sets module to `pending_integration`, archives compiled file, and cleans up lockfile; skill failure sets module status to `failed`, exits 1, and cleans up lockfile. Plus unit tests for `acquire_lock()`, `release_lock()`, and `execute_skill()`.
+
+### Changed
+- **Terminology purge — document-type agnosticism** — removed all uses of "patent", "invention", "legal brief", and "legal" from every file outside `docs/`. These references were context-poisoning LLM skill steps and biasing pipeline output toward specific domains. Affected files: `state_graph_schema.py`, `redteam.py`, `README.md`, all test fixtures, `spec/compiled/SuperPRD.md`, `spec/compiled/architecture.yml`, `spec/archive/` MiniPRDs, `.agents/memory/productContext.md`, `.agents/skills/forge_persona/SKILL.md`, `.agents/skills/template-architect/SKILL.md`. Replacements: `"patent_examiner_adversary"` → `"document_examiner_adversary"`, `"invention_disclosure"` → `"document"`, `"Legal Counsel"` → `"Critic"`, example document lists now read `PRDs, design docs, technical specs`.
+- **`README.md`** — added document-type agnosticism callout; updated Quick Start example to use generic `my_document` / `document_examiner` identifiers.
+- **`.agents/memory/systemPatterns.md`** — added "Document-Type Agnosticism" section codifying the prohibition on domain-specific terminology in pipeline code, tests, and skills.
+- **`.agents/memory/activeContext.md`** — updated to reflect full test coverage and complete MiniPRD status table.
+- **`.agents/memory/productContext.md`** — updated goals and operator persona description to remove domain-specific framing.
+
+---
+
 ## [0.0.9] - 2026-03-15
 
 ### Added

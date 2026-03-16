@@ -8,7 +8,7 @@ write directly to state_graph.yml.
 Schema (§5.5):
   document_meta:
     title: str
-    type: str                     # e.g. "invention_disclosure", "prd"
+    type: str                     # e.g. "document", "prd"
     global_status: str            # "in_progress" | "completed"
     confidence_score: int         # 1-10; warns at pipeline start if < 7
 

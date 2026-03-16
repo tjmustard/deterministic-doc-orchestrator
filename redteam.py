@@ -131,7 +131,7 @@ def _mock_generation(
         "2. What evidence supports the novelty assertion?",
         "3. Are there any [NEEDS_CLARIFICATION] sections that undermine the core claim?",
         "4. What prior art searches were conducted and what were the results?",
-        "5. What is the commercial viability of the described invention?",
+        "5. What is the commercial viability of the described document?",
     ]
     return "\n".join(mock_questions)
 

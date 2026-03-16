@@ -12,7 +12,7 @@
 
 ## 3. Implementation Plan (Task List)
 - [ ] Task 1: Conduct a structured interview with the operator (max 2 questions per turn):
-  - What is the name and type of the document? (e.g., "Patent Invention Disclosure", "Technical Design Doc")
+  - What is the name and type of the document? (e.g., "My Document", "Technical Design Doc")
   - What are the top-level sections this document must contain? (Operator lists them)
   - For each section: What specific data points or fields must be present? (Operator describes)
   - For each field: Is this field required or optional? What does a good answer look like?
@@ -26,7 +26,7 @@
   - A `## Common Failure Modes` section at the bottom listing the operator-identified pitfalls as agent guardrails.
 - [ ] Task 3: Display the generated template to the operator for review before saving.
 - [ ] Task 4: Run `validate_template()` on the generated content. If it fails, show the operator which check failed and regenerate.
-- [ ] Task 5: Derive a `template_id` from the document type name (snake_case, e.g., `patent_invention_disclosure`). Save to `.agents/schemas/templates/<template_id>.md`.
+- [ ] Task 5: Derive a `template_id` from the document type name (snake_case, e.g., `my_document`). Save to `.agents/schemas/templates/<template_id>.md`.
 - [ ] Task 6: Print confirmation: template ID, file path, and instructions for referencing it in `state_graph.yml`.
 
 ## 4. The Negative Space (Constraints)

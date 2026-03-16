@@ -14,7 +14,7 @@
 
 **CREATE mode (no `--update` flag):**
 - [ ] Task 1: Interview the operator (max 2 questions per turn):
-  - What document type will this persona interrogate? What is the persona's professional role/identity? (e.g., "Patent Examiner", "Security Auditor", "Commercial Lead")
+  - What document type will this persona interrogate? What is the persona's professional role/identity? (e.g., "Document Examiner", "Security Auditor", "Commercial Lead")
   - What is this persona's primary adversarial angle? (e.g., "prior art and obviousness", "security vulnerabilities", "market viability")
   - What are the 3 most important things this persona forces the author to prove?
   - What output constraints apply? (e.g., "numbered list only", "no conversational filler", "focus on edge cases")
@@ -53,7 +53,7 @@
 * **DO NOT** modify persona files used by active jobs without explicit `CONFIRM` from the operator.
 
 ## 5. Integration Tests & Verification
-* **Test 1 (Novel):** Run `/forge_persona` for a "Legal Counsel" persona reviewing software PRDs. Expected: a valid persona `.md` file saved to `.agents/schemas/personas/legal_counsel.md` with `version: 1` and a non-empty `changelog` — Candidate Artifact routing protocol triggered.
-* **Test 2 (Deterministic):** Run `/forge_persona --update legal_counsel` when `legal_counsel` is referenced by an active workspace job. Expected: prints WARNING message and requires `CONFIRM` before proceeding.
+* **Test 1 (Novel):** Run `/forge_persona` for a "Critic" persona reviewing software PRDs. Expected: a valid persona `.md` file saved to `.agents/schemas/personas/critic.md` with `version: 1` and a non-empty `changelog` — Candidate Artifact routing protocol triggered.
+* **Test 2 (Deterministic):** Run `/forge_persona --update critic` when `critic` is referenced by an active workspace job. Expected: prints WARNING message and requires `CONFIRM` before proceeding.
 * **Test 3 (Deterministic):** Run `/forge_persona --update nonexistent_persona`. Expected: aborts with file-not-found error.
 * **Test 4 (Deterministic):** After a successful update, verify `version` is incremented by 1 and `changelog` has a new entry.

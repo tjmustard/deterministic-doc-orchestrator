@@ -26,8 +26,8 @@ Parse `$ARGUMENTS`:
 Ask the operator the following questions in two batches:
 
 **Batch 1:**
-1. What document type will this persona interrogate? (e.g., "patent disclosure", "PRD", "legal brief")
-2. What is the persona's professional role/identity? (e.g., "Patent Examiner", "Security Auditor", "Commercial Lead")
+1. What document type will this persona interrogate? (e.g., "document", "PRD", "technical spec")
+2. What is the persona's professional role/identity? (e.g., "Document Examiner", "Security Auditor", "Commercial Lead")
 
 Wait for answers, then ask:
 
@@ -41,7 +41,7 @@ Wait for answers, then ask:
 5. What output constraints apply? (e.g., "numbered list only", "no conversational filler", "focus on edge cases")
 
 **Step 2 — Derive persona ID**
-Convert the persona name/role to `snake_case` for the `persona_id`. For example, "Patent Examiner" → `patent_examiner`.
+Convert the persona name/role to `snake_case` for the `persona_id`. For example, "Document Examiner" → `document_examiner`.
 
 **Step 3 — Anti-overwrite check**
 Check if `.agents/schemas/personas/<persona_id>.md` already exists. If it does, abort:

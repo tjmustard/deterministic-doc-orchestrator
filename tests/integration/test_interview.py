@@ -34,11 +34,11 @@ _QUESTIONNAIRE = """\
 5. Who are the primary competitors for offering E?
 6. What is the estimated cost of production for F?
 
-## Persona: Legal
+## Persona: Critic
 
-7. Is claim G already patented?
-8. Does feature H infringe any known prior art?
-9. What jurisdiction covers invention I?
+7. Is claim G already documented?
+8. Does feature H overlap with any existing implementations?
+9. What context covers document I?
 """
 
 

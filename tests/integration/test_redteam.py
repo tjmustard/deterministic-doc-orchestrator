@@ -18,14 +18,14 @@ import yaml
 SCRIPT = Path(__file__).parents[2] / "redteam.py"
 
 _PERSONA_CONTENT = """\
-You are a hostile patent examiner. You look for every weakness.
+You are a hostile document examiner. You look for every weakness.
 """
 
 # Draft with a [NEEDS_CLARIFICATION] marker to satisfy Test 4.
 _DRAFT_CONTENT = """\
 ## Background
 
-The invention relates to a self-healing polymer. [NEEDS_CLARIFICATION]
+The document describes a self-healing polymer. [NEEDS_CLARIFICATION]
 
 ## Claims
 
@@ -64,7 +64,7 @@ def make_workspace(
     (workspace / "active" / "draft_novelty.md").write_text(_DRAFT_CONTENT, encoding="utf-8")
 
     # Write persona snapshot.
-    (workspace / "personas_snapshot" / "patent_examiner_adversary.md").write_text(
+    (workspace / "personas_snapshot" / "document_examiner_adversary.md").write_text(
         _PERSONA_CONTENT, encoding="utf-8"
     )
 
@@ -109,7 +109,7 @@ def run_redteam(args: list[str], cwd: Path) -> subprocess.CompletedProcess:
     )
 
 
-def base_args(workspace: Path, tmp_path: Path, persona_id: str = "patent_examiner_adversary") -> list[str]:
+def base_args(workspace: Path, tmp_path: Path, persona_id: str = "document_examiner_adversary") -> list[str]:
     """Return args that point all output paths into tmp_path."""
     return [
         "novelty",
@@ -128,7 +128,7 @@ def base_args(workspace: Path, tmp_path: Path, persona_id: str = "patent_examine
 @pytest.mark.skip(
     reason=(
         "Novel test — requires a live Claude CLI and API key. "
-        "Run manually: python redteam.py novelty patent_examiner_adversary --workspace <path>"
+        "Run manually: python redteam.py novelty document_examiner_adversary --workspace <path>"
     )
 )
 def test_novel_redteam_appends_questions(tmp_path: Path) -> None:
@@ -138,7 +138,7 @@ def test_novel_redteam_appends_questions(tmp_path: Path) -> None:
     result = run_redteam(
         [
             "novelty",
-            "patent_examiner_adversary",
+            "document_examiner_adversary",
             "--workspace", str(workspace),
             "--repo-root", str(tmp_path),
         ],
@@ -150,7 +150,7 @@ def test_novel_redteam_appends_questions(tmp_path: Path) -> None:
     q_path = workspace / "active" / "module_novelty_questions.md"
     assert q_path.exists()
     text = q_path.read_text(encoding="utf-8")
-    assert "## Persona: patent_examiner_adversary" in text
+    assert "## Persona: document_examiner_adversary" in text
 
     candidate = tmp_path / "tests" / "candidate_outputs" / "module_novelty_questions.md"
     assert candidate.exists()
@@ -182,7 +182,7 @@ def test_cap_reached_skips_gracefully(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert "WARNING" in result.stdout
     assert "cap" in result.stdout.lower() or "reached" in result.stdout.lower()
-    assert "patent_examiner_adversary" in result.stdout
+    assert "document_examiner_adversary" in result.stdout
 
     # Questionnaire must be unchanged.
     assert q_path.read_text(encoding="utf-8") == original_text
@@ -214,7 +214,7 @@ def test_truncation_when_over_capacity(tmp_path: Path) -> None:
 
     # Truncation warning must be present.
     assert "WARNING" in result.stdout
-    assert "patent_examiner_adversary" in result.stdout
+    assert "document_examiner_adversary" in result.stdout
     assert "Truncated to 3" in result.stdout
 
     # Confirmation line must show 3 questions added.
@@ -225,7 +225,7 @@ def test_truncation_when_over_capacity(tmp_path: Path) -> None:
     # Questionnaire must contain exactly the 3 truncated questions under the header.
     q_path = workspace / "active" / "module_novelty_questions.md"
     q_text = q_path.read_text(encoding="utf-8")
-    assert "## Persona: patent_examiner_adversary" in q_text
+    assert "## Persona: document_examiner_adversary" in q_text
 
     # Candidate output must match questionnaire.
     candidate = tmp_path / "tests" / "candidate_outputs" / "module_novelty_questions.md"

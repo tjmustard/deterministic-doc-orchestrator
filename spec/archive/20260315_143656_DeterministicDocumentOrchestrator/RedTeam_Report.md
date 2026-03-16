@@ -14,7 +14,7 @@
 
 ### What-If Scenarios
 - **What if the operator defines a template that is structurally incompatible with the transcript format?** The `/extract` skill will silently write `[NEEDS_CLARIFICATION]` everywhere, producing a draft that is useless. There is no validation step that catches a template/transcript schema mismatch before the pipeline runs.
-- **What if a "general-purpose" use case requires a phase not in the fixed pipeline** (e.g., a legal document type that needs a "Compliance Check" phase between Extract and Red Team)? The current architecture has no extension point for custom phase injection without modifying `orchestrator.py` directly.
+- **What if a "general-purpose" use case requires a phase not in the fixed pipeline** (e.g., a document type that needs a "Compliance Check" phase between Extract and Red Team)? The current architecture has no extension point for custom phase injection without modifying `orchestrator.py` directly.
 
 ### Points for Improvement
 - **NFR MISSING — Minimum Viable Template Schema:** Define the minimum required sections a template file must contain for `/extract` to consider it valid. Add a `validate_template()` function to `init_workspace.py`.

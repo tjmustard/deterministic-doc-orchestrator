@@ -16,7 +16,7 @@ This skill conducts a paced guided interview with the operator to define a new d
 Ask in the following batches. Wait for the operator's answers after each batch before continuing.
 
 **Batch 1:**
-1. What is the name and type of the document you want to template? (e.g., "Patent Invention Disclosure", "Technical Design Doc", "Software Architecture Decision Record")
+1. What is the name and type of the document you want to template? (e.g., "My Document", "Technical Design Doc", "Software Architecture Decision Record")
 2. What are the top-level sections this document must contain? (List all of them — you can bullet them out)
 
 Wait for answers, then ask:
@@ -98,7 +98,7 @@ If both checks pass → proceed to Step 5.
 ## Step 5 — Anti-Overwrite Check and Derive Template ID
 
 **Derive template_id:** Convert the document type name to `snake_case`.
-- e.g., "Patent Invention Disclosure" → `patent_invention_disclosure`
+- e.g., "My Document" → `my_document`
 - e.g., "Software Architecture Decision Record" → `software_architecture_decision_record`
 
 **Anti-overwrite check:** Read `.agents/schemas/templates/<template_id>.md`.

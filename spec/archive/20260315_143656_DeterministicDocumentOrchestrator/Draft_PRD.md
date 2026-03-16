@@ -11,7 +11,7 @@
 ## 1. Introduction & Goals
 
 ### 1.1 Problem Statement
-Manual creation of complex, high-stakes documents (e.g., patent invention disclosures, PRDs, legal briefs) is slow, inconsistent, and error-prone. LLMs fail when given monolithic context — they hallucinate, lose nuance, and flatten technical precision into generic prose.
+Manual creation of complex, high-stakes documents (e.g., PRDs, design docs, technical specs) is slow, inconsistent, and error-prone. LLMs fail when given monolithic context — they hallucinate, lose nuance, and flatten technical precision into generic prose.
 
 The root cause is the **Specification Alignment Problem**: probabilistic reasoning (LLM text generation) is coupled with state management (deciding what to generate next), causing context collapse.
 
@@ -163,7 +163,7 @@ Architecture is greenfield — no existing nodes in `spec/compiled/architecture.
 ```yaml
 document_meta:
   title: string
-  type: string           # e.g. "invention_disclosure", "prd", "legal_brief"
+  type: string           # e.g. "document", "prd", "technical_spec"
   global_status: string  # "in_progress" | "completed"
 
 personas:

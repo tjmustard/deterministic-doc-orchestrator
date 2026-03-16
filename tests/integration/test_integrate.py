@@ -32,7 +32,7 @@ _TEMPLATE = """\
 _DRAFT = """\
 ## Background
 
-The invention relates to a self-healing polymer composite.
+The document describes a self-healing polymer composite.
 
 ## Claims
 

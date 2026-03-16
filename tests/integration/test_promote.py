@@ -22,7 +22,7 @@ from promote import run_promote  # noqa: E402
 # Fixtures and helpers
 # ---------------------------------------------------------------------------
 
-_DRAFT_CONTENT = "## Background\n\nThe invention relates to a self-healing polymer.\n"
+_DRAFT_CONTENT = "## Background\n\nThe document describes a self-healing polymer.\n"
 _QUESTIONS_CONTENT = "## Questions\n\n1. What is the primary claim?\n"
 _FINAL_CONTENT = "## Background\n\nFully resolved claim with healing agent.\n"
 

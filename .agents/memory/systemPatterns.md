@@ -33,6 +33,12 @@ Each step is a standalone Python CLI that reads/writes `state_graph.yml` via `st
 
 - **SKILL.md-based skills:** Library-management skills (`/template-architect`, `/forge_persona`) are implemented as agent instruction files (`.agents/skills/<name>/SKILL.md`) rather than Python CLIs. They conduct interactive guided interviews, apply inline validation logic, and write directly to the schema library. No integration test file is created for these — the human review gate (`CONFIRM` before save) is the test boundary.
 
+## Document-Type Agnosticism
+
+The pipeline has no knowledge of any specific document domain. All domain-specific terminology (e.g. "patent", "invention", "legal brief") is strictly prohibited in pipeline code, tests, skills, and documentation outside of `docs/`. Any such reference would context-poison the LLM steps and bias output toward that domain.
+
+To configure the pipeline for a document type: define a template schema (via `/template-architect`) and one or more adversarial personas (via `/forge_persona`). The pipeline adapts entirely through these external artifacts — no code changes required.
+
 ## Conventions
 
 - **File naming:** skill scripts at repo root (`extract.py`, `redteam.py`, `interview.py`, `integrate.py`). Tests at `tests/integration/test_<skill>.py`.
