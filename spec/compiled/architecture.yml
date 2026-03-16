@@ -202,7 +202,7 @@ nodes:
     - orchestrator_system
 - id: template_library
   dimension: Module
-  status: clean
+  status: dirty
   associated_file: .agents/schemas/templates/
   description: ".agents/schemas/templates/ \u2014 Document type template Markdown\
     \ files. Each template must have at least one ## section heading and one [Insert\
@@ -224,13 +224,15 @@ nodes:
   dimension: Module
   status: clean
   associated_file: promote.py
-  description: "tests/candidate_outputs/ + tests/fixtures/ review workflow. All AI-generated\
-    \ outputs are routed to candidate_outputs/ first. promote.py presents them for\
-    \ operator APPROVE/REJECT review. APPROVE moves to tests/fixtures/ (ground truth)\
-    \ and sets the corresponding approval flag (draft_approved, questions_approved,\
-    \ compiled_approved) in state_graph.yml. REJECT logs reason + ISO8601 timestamp\
-    \ to a rejections list on the module and resets status to pending_integration.\
-    \ No automatic promotion ever occurs.\n"
+  description: 'tests/candidate_outputs/ + tests/fixtures/ review workflow. All AI-generated
+    outputs are routed to candidate_outputs/ first. promote.py presents them for operator
+    APPROVE/REJECT review. APPROVE moves to tests/fixtures/ (ground truth) and sets
+    the corresponding approval flag (draft_approved, questions_approved, compiled_approved)
+    in state_graph.yml. REJECT logs reason + ISO8601 timestamp to a rejections list
+    on the module and resets status to pending_integration. No automatic promotion
+    ever occurs.
+
+    '
   inputs:
   - data_type: candidate_draft
     source_id: skill_extract
@@ -251,11 +253,12 @@ nodes:
 - id: skill_template_architect
   dimension: Module
   status: clean
-  associated_file: spec/compiled/MiniPRD_TemplateArchitect.md
-  description: "/template-architect slash command \u2014 Guides the operator through\
-    \ a structured interview to produce a validated Markdown template file for a new\
-    \ document type. Writes the output to .agents/schemas/templates/ after validate_template()\
-    \ passes.\n"
+  associated_file: .agents/skills/template-architect/SKILL.md
+  description: "/template-architect slash command \u2014 Paced 3-batch guided interview\
+    \ (max 2 questions per turn) producing a validated Markdown template file for a\
+    \ new document type. Validates via inline validate_template() checks (## section\
+    \ heading + [Insert from transcript] placeholder). Anti-overwrite check before\
+    \ save. Writes to .agents/schemas/templates/<template_id>.md after operator CONFIRM.\n"
   inputs:
   - data_type: operator_interview_answers
     source_id: human_operator
@@ -431,8 +434,8 @@ nodes:
     \ --workspace <path>`. Loads state_graph.yml via load_state(); resolves existing\
     \ candidate output files (draft_<id>.md, module_<id>_questions.md, final_<id>.md)\
     \ from tests/candidate_outputs/ in pipeline order. Skips absent slots. For each\
-    \ present file: prints filename + full contents, prompts operator for APPROVE or\
-    \ REJECT <reason>. On APPROVE: shutil.move() to tests/fixtures/, sets corresponding\
+    \ present file: prints filename + full contents, prompts operator for APPROVE\
+    \ or REJECT <reason>. On APPROVE: shutil.move() to tests/fixtures/, sets corresponding\
     \ candidate_outputs flag (draft_approved / questions_approved / compiled_approved)\
     \ to True, saves state atomically. On REJECT: appends {file, reason, timestamp}\
     \ to module.rejections list, resets status to pending_integration, saves state\

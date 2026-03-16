@@ -11,6 +11,14 @@ Versioning: `0.0.x` = pre-SuperPRD implementation increments. `0.1.0` = first co
 
 ---
 
+## [0.0.8] - 2026-03-15
+
+### Added
+- **`/template-architect`** — new slash command skill backed by `.agents/skills/template-architect/SKILL.md`. Conducts a paced 3-batch guided interview (max 2 questions per turn) to define a new document type template from scratch. Synthesizes interview answers into a structured Markdown template with a `#` title, `**Agent Instruction:**` block, `##` sections, bold field names, `[Insert from transcript]` placeholders, optional field markers, and a `## Common Failure Modes` guardrail section. Validates the generated template inline (checks for `##` section heading and `[Insert from transcript]` placeholder, matching `validate_template()` in `init_workspace.py`); re-enters operator review on failure. Anti-overwrite check prompts `CONFIRM` before overwriting an existing template ID. Saves to `.agents/schemas/templates/<template_id>.md` after operator `CONFIRM` and validation pass. Prints save path and `state_graph.yml` reference instructions on completion.
+- **`.claude/commands/template-architect.md`** — Claude Code command bridge delegating to `.agents/skills/template-architect/SKILL.md`.
+
+---
+
 ## [0.0.7] - 2026-03-15
 
 ### Added

@@ -31,6 +31,8 @@ Each step is a standalone Python CLI that reads/writes `state_graph.yml` via `st
 - **Hidden internal flags:** `--mock-*` and `--repo-root` are suppressed via `argparse.SUPPRESS` — they exist for test isolation only and are never documented to operators.
 - **Pure helper separation:** All parseable, testable logic lives in importable module-level functions (e.g. `count_existing_questions()`, `parse_questionnaire()`). `main()` only handles CLI wiring.
 
+- **SKILL.md-based skills:** Library-management skills (`/template-architect`, `/forge_persona`) are implemented as agent instruction files (`.agents/skills/<name>/SKILL.md`) rather than Python CLIs. They conduct interactive guided interviews, apply inline validation logic, and write directly to the schema library. No integration test file is created for these — the human review gate (`CONFIRM` before save) is the test boundary.
+
 ## Conventions
 
 - **File naming:** skill scripts at repo root (`extract.py`, `redteam.py`, `interview.py`, `integrate.py`). Tests at `tests/integration/test_<skill>.py`.
