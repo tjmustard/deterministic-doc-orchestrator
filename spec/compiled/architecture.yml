@@ -298,14 +298,13 @@ nodes:
   associated_file: extract.py
   description: "extract.py \u2014 Python CLI invoked as `python extract.py <module_id>\
     \ --workspace <path>`. Loads state_graph.yml via load_state(); resolves the module\
-    \ entry and its associated_files.template path. Aborts with exit code 1 if\
-    \ transcripts/raw_input.md is missing or empty. Constructs a Technical Scraper\
-    \ prompt (system instruction + template + transcript) and invokes `claude -p`\
-    \ as a subprocess to produce draft_content. Counts [NEEDS_CLARIFICATION] markers;\
-    \ prints WARNING if any found. Writes draft to active/draft_<module_id>.md and\
-    \ copies to tests/candidate_outputs/draft_<module_id>.md. Atomically advances\
-    \ state_graph.yml status to 'extracted' via save_state() (tmp\u2192rename). Does\
-    \ not advance status if the claude subprocess exits non-zero.\n"
+    \ entry and its associated_files.template path. Aborts with exit code 1 if transcripts/raw_input.md\
+    \ is missing or empty. Constructs a Technical Scraper prompt (system instruction\
+    \ + template + transcript) and invokes `claude -p` as a subprocess to produce\
+    \ draft_content. Counts [NEEDS_CLARIFICATION] markers; prints WARNING if any found.\
+    \ Writes draft to active/draft_<module_id>.md and copies to tests/candidate_outputs/draft_<module_id>.md.\
+    \ Atomically advances state_graph.yml status to 'extracted' via save_state() (tmp\u2192\
+    rename). Does not advance status if the claude subprocess exits non-zero.\n"
   inputs:
   - data_type: state_graph_yml
     source_id: orchestrator_core
@@ -353,18 +352,26 @@ nodes:
 - id: skill_interview
   dimension: Module
   status: clean
-  associated_file: spec/compiled/MiniPRD_Interview.md
-  description: "/interview [module_id] slash command \u2014 Paces Q&A 3 questions\
-    \ at a time. Operator types DONE to pause; adversarial_state.last_answered_index\
-    \ saved to state_graph.yml enabling resume across sessions. Appends answers to\
-    \ transcripts/module_[id]_answers.md.\n"
+  associated_file: interview.py
+  description: "interview.py \u2014 Python CLI invoked as `python interview.py <module_id>\
+    \ --workspace <path>`. Loads state_graph.yml and reads adversarial_state.last_answered_index\
+    \ (default 0). Parses active/module_<id>_questions.md for numbered questions (^\\d+\\.).\
+    \ Offers a pre-session DONE gate before presenting any questions, enabling Test 5\
+    \ (pause without answering). Presents unanswered questions in batches of 3; after every\
+    \ 3rd answer (when more remain) prompts DONE/continue. Appends each answer to\
+    \ transcripts/module_<id>_answers.md and atomically saves last_answered_index to\
+    \ state_graph.yml after each answer. On full completion, validates answers file grew\
+    \ then sets module status to pending_integration and adversarial_state.status to\
+    \ ready_for_integration. Never modifies the questionnaire file.\n"
   inputs:
-  - data_type: master_questionnaire
+  - data_type: master_questionnaire_md
     source_id: skill_redteam
   - data_type: operator_answers
     source_id: human_operator
+  - data_type: state_graph_yml
+    source_id: orchestrator_core
   outputs:
-  - data_type: answers_transcript
+  - data_type: answers_transcript_md
     target_id: skill_integrate
   - data_type: state_update
     target_id: orchestrator_core

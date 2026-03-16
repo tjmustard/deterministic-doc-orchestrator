@@ -136,6 +136,22 @@ Normally invoked by `orchestrator.py` via `claude /extract`. Can be run standalo
 
 ---
 
+### `interview.py` — resumable paced Q&A
+
+```
+python interview.py <module_id> --workspace <path>
+```
+
+| Option | Description |
+|---|---|
+| `--workspace <path>` | Path to the workspace directory (required) |
+
+Loads `state_graph.yml`, reads `adversarial_state.last_answered_index` (default `0`), and parses `active/module_<module_id>_questions.md` for numbered questions (`^\d+\.`). Presents unanswered questions in batches of 3. Saves `last_answered_index` atomically to `state_graph.yml` after each answer. Operator types `DONE` at the initial gate prompt or after any batch of 3 to pause and exit — progress is preserved. Re-running resumes from the next unanswered question. On completion of all questions, advances module status to `pending_integration` and `adversarial_state.status` to `ready_for_integration`. Never modifies the questionnaire file.
+
+Normally invoked interactively by the operator after the orchestrator halts at `pending_interview`. Can be run standalone.
+
+---
+
 ### `audit_state.py` — reconcile state after a crash
 
 ```
@@ -230,7 +246,7 @@ The framework installs only files and directories into your repo — no system-l
 rm -rf .agents/ spec/ tests/ docs/ .agentignore
 
 # Python scripts (if added at repo root)
-rm -f init_workspace.py orchestrator.py audit_state.py archive_manager.py state_graph_schema.py extract.py
+rm -f init_workspace.py orchestrator.py audit_state.py archive_manager.py state_graph_schema.py extract.py interview.py
 
 # IDE-specific files — remove whichever you installed:
 rm -rf .claude/ .windsurf/ .cursor/ .clinerules/ .roo/

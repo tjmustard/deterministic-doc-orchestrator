@@ -11,6 +11,14 @@ Versioning: `0.0.x` = pre-SuperPRD implementation increments. `0.1.0` = first co
 
 ---
 
+## [0.0.4] - 2026-03-15
+
+### Added
+- `interview.py` — Python CLI backing the `/interview` pipeline skill. Loads `state_graph.yml`, reads `adversarial_state.last_answered_index` (default `0`), parses `active/module_<id>_questions.md` for `^\d+\.` numbered questions. Offers a pre-session DONE gate before presenting any questions; presents unanswered questions in batches of 3; after every 3rd answer (when more remain) prompts DONE/continue. Atomically saves `last_answered_index` to `state_graph.yml` after each answer. On full completion, validates the answers file grew then sets module status to `pending_integration` and `adversarial_state.status` to `ready_for_integration`. Never modifies the questionnaire file. Supports injectable `input_fn` for deterministic testing.
+- `tests/integration/test_interview.py` — 9 tests covering: answer 3 + DONE (index=3, status unchanged), resume skips answered questions, fully-answered early exit, complete all 9 advances status, DONE-immediately guard (no state change). Plus unit tests for `parse_questionnaire()` and `append_answer()`.
+
+---
+
 ## [0.0.3] - 2026-03-15
 
 ### Added
