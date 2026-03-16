@@ -11,6 +11,14 @@ Versioning: `0.0.x` = pre-SuperPRD implementation increments. `0.1.0` = first co
 
 ---
 
+## [0.0.6] - 2026-03-15
+
+### Added
+- **`integrate.py`** — Python CLI backing the `/integrate` pipeline skill. Loads `state_graph.yml` via `load_state()`; resolves `active/draft_<module_id>.md` (aborts exit 1 if missing); validates `transcripts/module_<module_id>_answers.md` is non-empty (aborts exit 1 if absent or empty: `ERROR: No answers transcript found for module '<id>'. Run /interview first.`); resolves `associated_files.template`. Constructs a Resolution Agent prompt (system instruction + template schema + baseline draft labeled `BASELINE DRAFT:` + answers transcript labeled `ADVERSARIAL Q&A ANSWERS:`) and invokes `claude -p`. Writes integrated content to `tests/candidate_outputs/final_<module_id>.md` only — never to `compiled/`. Does not call `save_state()` or advance module status; that is `/promote`'s responsibility. Prints instruction to run `/promote <module_id>`. Supports `--mock-integration` (hidden flag, returns draft prefixed with `<!-- MOCK INTEGRATED -->` for deterministic testing) and `--repo-root` (test path isolation).
+- **`tests/integration/test_integrate.py`** — 9 tests (1 novel skipped): empty answers transcript aborts with exit 1 and error message; missing answers transcript aborts; `compiled/final_<module_id>.md` does NOT exist after `/integrate` (candidate routing enforced); `state_graph.yml` module status unchanged after `/integrate` (status stays `pending_integration`); `/promote` instruction appears in stdout. Plus unit tests for `validate_answers()` and `_mock_integration()`.
+
+---
+
 ## [0.0.5] - 2026-03-15
 
 ### Added

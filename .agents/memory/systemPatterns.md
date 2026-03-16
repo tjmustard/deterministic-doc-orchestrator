@@ -33,7 +33,7 @@ Each step is a standalone Python CLI that reads/writes `state_graph.yml` via `st
 
 ## Conventions
 
-- **File naming:** skill scripts at repo root (`extract.py`, `redteam.py`, `interview.py`). Tests at `tests/integration/test_<skill>.py`.
+- **File naming:** skill scripts at repo root (`extract.py`, `redteam.py`, `interview.py`, `integrate.py`). Tests at `tests/integration/test_<skill>.py`.
 - **Status progression:** `pending_extraction → extracted → pending_interview → pending_integration → integrated`. Set via `set_module_status()` + `save_state()`.
 - **Error exits:** All fatal errors print to `sys.stderr`, exit code 1. Graceful skips (e.g. cap reached) print to `stdout`, exit code 0.
 - **Question counting:** Numbered lines matching `^\d+\.` across the full questionnaire file — regardless of persona section headers.

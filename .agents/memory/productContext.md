@@ -13,7 +13,7 @@ A multi-agent CLI pipeline for generating high-stakes technical documents (paten
 - **Goal 1:** Eliminate hallucination-driven document failures by decoupling LLM generation from pipeline control flow.
 - **Goal 2:** Produce adversarially stress-tested documents via multi-persona red-teaming before any content is accepted.
 - **Goal 3:** Give operators full auditability — every AI output routes to `tests/candidate_outputs/` before human review via `/promote`.
-- **Goal 4:** Reach v0.1.0 with all MiniPRDs implemented (integrate, promote, template-architect, forge-persona remaining).
+- **Goal 4:** Reach v0.1.0 with all MiniPRDs implemented (promote, template-architect, forge-persona remaining).
 
 ## User Personas
 

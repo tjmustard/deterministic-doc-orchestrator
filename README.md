@@ -174,6 +174,26 @@ Normally invoked interactively by the operator after the orchestrator halts at `
 
 ---
 
+### `integrate.py` — synthesize draft + Q&A answers into a final candidate document
+
+```
+python integrate.py <module_id> --workspace <path>
+```
+
+| Option | Description |
+|---|---|
+| `--workspace <path>` | Path to the workspace directory (required) |
+
+Loads `state_graph.yml`, resolves `active/draft_<module_id>.md` (aborts if missing), and validates that `transcripts/module_<module_id>_answers.md` is non-empty (aborts with exit code 1 if absent or empty, with the message: `ERROR: No answers transcript found for module '<id>'. Run /interview first.`).
+
+Constructs a Resolution Agent prompt containing the original template schema, the baseline draft (labeled `BASELINE DRAFT:`), and the answers transcript (labeled `ADVERSARIAL Q&A ANSWERS:`), then calls `claude -p` to synthesize a final, defensible document section. Writes the output to `tests/candidate_outputs/final_<module_id>.md` only — never to `compiled/`. Does **not** update `state_graph.yml`; status advances to `integrated` only after `/promote` approves the candidate output.
+
+Prints: `Integration complete. Review the output at tests/candidate_outputs/final_<module_id>.md. Run /promote <module_id> to approve and move to compiled/`
+
+Normally invoked by `orchestrator.py` after `pending_integration` status is reached. Can be run standalone for debugging.
+
+---
+
 ### `audit_state.py` — reconcile state after a crash
 
 ```
@@ -268,7 +288,7 @@ The framework installs only files and directories into your repo — no system-l
 rm -rf .agents/ spec/ tests/ docs/ .agentignore
 
 # Python scripts (if added at repo root)
-rm -f init_workspace.py orchestrator.py audit_state.py archive_manager.py state_graph_schema.py extract.py redteam.py interview.py
+rm -f init_workspace.py orchestrator.py audit_state.py archive_manager.py state_graph_schema.py extract.py redteam.py interview.py integrate.py
 
 # IDE-specific files — remove whichever you installed:
 rm -rf .claude/ .windsurf/ .cursor/ .clinerules/ .roo/

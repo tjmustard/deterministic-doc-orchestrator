@@ -337,10 +337,10 @@ nodes:
     \ lines (^\\d+\\.) to calculate remaining capacity against module.max_questions\
     \ (default 50). If remaining_capacity <= 0, prints cap-reached WARNING and exits\
     \ 0. Otherwise constructs prompt (persona content + draft + generation instruction)\
-    \ and invokes `claude -p` subprocess. Parses numbered lines from LLM output;\
-    \ truncates with WARNING if count > remaining_capacity. Appends \\n## Persona:\
-    \ <id>\\n<questions>\\n to questionnaire. Copies full questionnaire to tests/candidate_outputs/.\
-    \ Sets adversarial_state.status to interview_in_progress atomically via save_state().\
+    \ and invokes `claude -p` subprocess. Parses numbered lines from LLM output; truncates\
+    \ with WARNING if count > remaining_capacity. Appends \\n## Persona: <id>\\n<questions>\\\
+    n to questionnaire. Copies full questionnaire to tests/candidate_outputs/. Sets\
+    \ adversarial_state.status to interview_in_progress atomically via save_state().\
     \ Prints persona, questions added, total, and remaining capacity.\n"
   inputs:
   - data_type: draft_md
@@ -396,20 +396,27 @@ nodes:
 - id: skill_integrate
   dimension: Module
   status: clean
-  associated_file: spec/compiled/MiniPRD_Integrate.md
-  description: "/integrate [module_id] slash command \u2014 Synthesizes the final\
-    \ compiled document section from the approved draft and Q&A answers transcript.\
-    \ Writes compiled/final_[module_id].md and routes to tests/candidate_outputs/.\n"
+  associated_file: integrate.py
+  description: "integrate.py \u2014 Python CLI invoked as `python integrate.py <module_id>\
+    \ --workspace <path>`. Loads state_graph.yml via load_state(); resolves active/draft_<module_id>.md\
+    \ (aborts with exit 1 if missing); resolves transcripts/module_<module_id>_answers.md\
+    \ (aborts with exit 1 if empty); resolves associated_files.template. Constructs\
+    \ a Resolution Agent prompt (system instruction + template schema + baseline draft\
+    \ + adversarial Q&A answers) and invokes `claude -p` subprocess. Writes integrated\
+    \ content to tests/candidate_outputs/final_<module_id>.md ONLY. Prints instruction\
+    \ to run /promote. Does NOT write to compiled/. Does NOT update state_graph.yml.\n"
   inputs:
+  - data_type: state_graph_yml
+    source_id: orchestrator_core
   - data_type: draft_md
     source_id: skill_extract
-  - data_type: answers_transcript
+  - data_type: answers_transcript_md
     source_id: skill_interview
+  - data_type: template_file
+    source_id: template_library
   outputs:
-  - data_type: final_compiled_md
+  - data_type: candidate_final_md
     target_id: candidate_output_protocol
-  - data_type: state_update
-    target_id: orchestrator_core
   edges:
     depends_on:
     - orchestrator_core

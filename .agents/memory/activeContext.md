@@ -12,6 +12,7 @@ This file updates dynamically after *every task completion*. It captures the "No
 - Implement all pending MiniPRDs to reach v0.1.0 (first complete SuperPRD fulfillment).
 
 ## Recently Completed (2026-03-15)
+- `integrate.py` implemented and audited (v0.0.6). MiniPRD archived to `spec/archive/`.
 - `redteam.py` implemented and audited (v0.0.5). MiniPRD archived to `spec/archive/`.
 - `interview.py` implemented and audited (v0.0.4).
 - `extract.py` implemented and audited (v0.0.3).
@@ -21,13 +22,11 @@ This file updates dynamically after *every task completion*. It captures the "No
 
 | MiniPRD | Spec File | Status |
 |---|---|---|
-| MiniPRD_Integrate | spec/compiled/MiniPRD_Integrate.md | pending |
 | MiniPRD_Promote | spec/compiled/MiniPRD_Promote.md | pending |
 | MiniPRD_TemplateArchitect | spec/compiled/MiniPRD_TemplateArchitect.md | pending |
 | MiniPRD_ForgePersona | spec/compiled/MiniPRD_ForgePersona.md | pending |
 
 ## Next Steps
-- [ ] `/hyper-execute MiniPRD_Integrate` — synthesize final compiled doc from draft + Q&A answers
 - [ ] `/hyper-execute MiniPRD_Promote` — APPROVE/REJECT candidate outputs workflow
 - [ ] `/hyper-execute MiniPRD_TemplateArchitect` — guided interview to produce validated templates
 - [ ] `/hyper-execute MiniPRD_ForgePersona` — versioned persona creation/update workflow
