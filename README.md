@@ -118,6 +118,24 @@ On any subprocess failure: sets module status to `failed`, writes state atomical
 
 ---
 
+### `extract.py` — map transcript to template schema
+
+```
+python extract.py <module_id> --workspace <path>
+```
+
+| Option | Description |
+|---|---|
+| `--workspace <path>` | Path to the workspace directory (required) |
+
+Loads `state_graph.yml`, resolves the module's template from `associated_files.template`, validates that `transcripts/raw_input.md` is non-empty, then calls `claude -p` with a Technical Scraper prompt to extract draft content. Writes `active/draft_<module_id>.md`, copies it to `tests/candidate_outputs/`, and atomically advances the module status to `extracted`.
+
+Aborts with exit code 1 (state unchanged) if the transcript is missing/empty or the claude subprocess fails. Prints a WARNING if any `[NEEDS_CLARIFICATION]` markers are present, but does **not** halt — the red-team interrogates gaps downstream.
+
+Normally invoked by `orchestrator.py` via `claude /extract`. Can be run standalone for debugging.
+
+---
+
 ### `audit_state.py` — reconcile state after a crash
 
 ```
@@ -159,6 +177,7 @@ archive_compiled("novelty", workspace_path)    # archives compiled/final_novelty
 | `/interview <module_id>` | Pace Q&A 3 questions at a time; type `DONE` to pause; resumes from last index |
 | `/integrate <module_id>` | Synthesize final compiled doc from draft + Q&A answers |
 | `/promote <module_id>` | Present candidate outputs for APPROVE/REJECT; approved files move to `tests/fixtures/` |
+| `/hyper-redteam` | Framework-level PRD stress-test — OWASP/scalability/logic analysis of `spec/active/Draft_PRD.md` |
 
 ---
 
@@ -211,7 +230,7 @@ The framework installs only files and directories into your repo — no system-l
 rm -rf .agents/ spec/ tests/ docs/ .agentignore
 
 # Python scripts (if added at repo root)
-rm -f init_workspace.py orchestrator.py audit_state.py archive_manager.py state_graph_schema.py
+rm -f init_workspace.py orchestrator.py audit_state.py archive_manager.py state_graph_schema.py extract.py
 
 # IDE-specific files — remove whichever you installed:
 rm -rf .claude/ .windsurf/ .cursor/ .clinerules/ .roo/

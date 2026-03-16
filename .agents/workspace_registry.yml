@@ -1,2 +1,5 @@
 workspaces:
 - /home/tjmustard/Documents/GitHub/deterministic-doc-orchestrator/test_job
+- /tmp/pytest-of-tjmustard/pytest-0/test_clean_init_creates_worksp0/test_job
+- /tmp/pytest-of-tjmustard/pytest-0/test_double_init_is_rejected0/test_job
+- /tmp/pytest-of-tjmustard/pytest-0/test_force_overwrites_existing0/test_job

@@ -195,21 +195,22 @@ def create_workspace(
     workspace_dir = workspace_root / job_name
 
     # --- Task 2: Guard against overwriting ---
-    if workspace_dir.exists() and (workspace_dir / "state_graph.yml").exists():
-        if not force:
+    if workspace_dir.exists():
+        if workspace_exists(workspace_dir):
+            if not force:
+                print(
+                    f"ERROR: Workspace '{job_name}' already initialized. "
+                    "Use --force to overwrite.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            wipe_workspace(workspace_dir)
+        else:
+            # Directory exists but is not a confirmed workspace — refuse to touch it
+            # regardless of --force, to prevent accidental data loss.
             print(
-                f"ERROR: Workspace '{job_name}' already initialized. "
-                "Use --force to overwrite.",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-        wipe_workspace(workspace_dir)
-    elif workspace_dir.exists() and (workspace_dir / "state_graph.yml").exists() is False:
-        # Directory exists but is not a workspace — refuse to wipe it
-        if not force:
-            print(
-                f"ERROR: Workspace '{job_name}' already initialized. "
-                "Use --force to overwrite.",
+                f"ERROR: Directory '{workspace_dir}' already exists but is not a valid "
+                "workspace (no state_graph.yml found). Aborting to prevent data loss.",
                 file=sys.stderr,
             )
             sys.exit(1)
@@ -322,6 +323,12 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="ID",
         help="Template IDs to validate against .agents/schemas/templates/.",
     )
+    parser.add_argument(
+        "--repo-root",
+        default=None,
+        metavar="PATH",
+        help=argparse.SUPPRESS,  # Internal override used by tests.
+    )
     return parser
 
 
@@ -330,7 +337,11 @@ def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
 
-    repo_root = Path(__file__).parent.resolve()
+    repo_root = (
+        Path(args.repo_root).resolve()
+        if args.repo_root
+        else Path(__file__).parent.resolve()
+    )
     workspace_root = Path(args.workspace_root).resolve()
 
     create_workspace(

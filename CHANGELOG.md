@@ -11,6 +11,32 @@ Versioning: `0.0.x` = pre-SuperPRD implementation increments. `0.1.0` = first co
 
 ---
 
+## [0.0.3] - 2026-03-15
+
+### Added
+- `extract.py` — Python CLI that backs the `/extract` pipeline skill. Validates the workspace transcript, builds the Technical Scraper extraction prompt, invokes `claude -p` as a subprocess, counts `[NEEDS_CLARIFICATION]` gaps (warns but does not halt), writes `active/draft_<module_id>.md`, copies to `tests/candidate_outputs/`, and atomically advances `state_graph.yml` to `extracted`. Exits code 1 without touching state if the transcript is empty or the LLM subprocess fails. Supports `--mock-extraction` (hidden flag, replaces LLM call with a deterministic stub for tests) and `--repo-root` (test path isolation).
+- `tests/integration/test_extract.py` — 8 tests covering: empty transcript abort (exit 1, state unchanged), missing transcript abort, partial-transcript gap warning + state advancement, candidate output routing, and unit tests for `count_gaps()` and `validate_transcript()`. Live-LLM Test 1 is `pytest.mark.skip`'d with manual-run instructions.
+
+---
+
+## [0.0.2] - 2026-03-15
+
+### Added
+- `audit_state.py` — 4-rule filesystem reconciler: force-integrates modules with orphaned compiled files, reverts draft-missing modules to `pending_extraction`, alerts on `failed` modules and stale lockfiles; supports `associated_files` path overrides in `state_graph.yml`
+- Pipeline skills: `/extract`, `/forge_persona`, `/integrate`, `/interview`, `/promote` — full operator-facing slash commands covering the extract → red-team → interview → integrate → promote lifecycle
+- `/hyper-redteam` — framework-level PRD stress-test (OWASP, scalability, logic analysis of `spec/active/Draft_PRD.md`); split out from the old `/redteam` to separate pipeline from framework-level concerns
+- `.agents/schemas/personas/` and `.agents/schemas/templates/` — schema directories now tracked in the repo; `init_workspace.py` and `forge_persona` read/write here
+
+### Changed
+- `/redteam` rewritten as a pipeline skill: workspace-scoped, persona-driven, 50-question cap per module, persona snapshot resolution, atomic questionnaire append; old framework-level PRD analysis moved to `/hyper-redteam`
+- `init_workspace.py` guard logic: non-workspace directories (no `state_graph.yml`) are now always rejected regardless of `--force`, preventing blast-radius on unrelated directories; error message now distinguishes "already initialized" from "foreign directory"; adds suppressed `--repo-root` flag for test isolation
+
+### Removed
+- `docs/MasterSOP.md`, `docs/Troubleshooting.md`, `docs/Tutorial.md`, `docs/Whitepaper.md` — replaced by skills (`/sop`, `/troubleshooting`, `/tutorial`) and the consolidated docs below
+- Root-level `Agentic-Orchestrator.md`, `Agentic-Orchestrator-Article.md`, `Core-Structureal-Blueprint.md` — moved to `docs/`
+
+---
+
 ## [0.0.1] - 2026-03-15
 
 ### Added

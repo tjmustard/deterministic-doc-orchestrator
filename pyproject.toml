@@ -1,0 +1,20 @@
+[project]
+name = "deterministic-doc-orchestrator"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Thomas J. L. Mustard Ph.D.", email = "tjmustard@mustardfamily.com" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.9.16,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pyyaml>=6.0.3",
+]

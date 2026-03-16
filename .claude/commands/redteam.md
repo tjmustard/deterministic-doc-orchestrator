@@ -1,4 +1,6 @@
 ---
-description: "[Phase 1] Stress-test the Draft PRD for security, scalability, and logic flaws"
+description: "[Pipeline] Generate adversarial questions against a module draft using a persona"
 ---
 Read `.agents/skills/redteam/SKILL.md` and follow its instructions precisely.
+
+Arguments (module_id, persona_id, and --workspace path): $ARGUMENTS

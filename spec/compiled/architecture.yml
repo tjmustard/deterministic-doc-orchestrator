@@ -22,9 +22,11 @@ nodes:
   associated_file: spec/compiled/MiniPRD_WorkspaceInit.md
   description: "init_workspace.py \u2014 Scaffolds a fully isolated per-job workspace\
     \ directory. Validates all referenced persona and template files before touching\
-    \ the filesystem, guards against overwriting existing workspaces, creates the\
-    \ canonical subdirectory structure, writes a minimal state_graph.yml, and appends\
-    \ the workspace to .agents/workspace_registry.yml.\n"
+    \ the filesystem; refuses to touch directories that exist but are not confirmed\
+    \ workspaces (no state_graph.yml) even under --force; creates the canonical subdirectory\
+    \ structure (transcripts/, active/, compiled/, archive/, personas_snapshot/);\
+    \ writes a minimal state_graph.yml; ensures tests/candidate_outputs/ and tests/fixtures/\
+    \ exist; and appends the workspace absolute path to .agents/workspace_registry.yml.\n"
   inputs:
   - data_type: cli_args
     source_id: human_operator
@@ -49,8 +51,8 @@ nodes:
   status: clean
   associated_file: spec/compiled/MiniPRD_Orchestrator.md
   description: "orchestrator.py \u2014 YAML-driven state machine loop. Acquires a\
-    \ lockfile at startup; performs pre-flight validation (missing files, symlink scan,\
-    \ confidence_score < 7 warning); snapshots persona files into personas_snapshot/\
+    \ lockfile at startup; performs pre-flight validation (missing files, symlink\
+    \ scan, confidence_score < 7 warning); snapshots persona files into personas_snapshot/\
     \ before the loop; advances each module through pending_extraction \u2192 extracted\
     \ \u2192 pending_interview \u2192 pending_integration \u2192 integrated by invoking\
     \ claude /{skill} --workspace <path> subprocesses; writes state_graph.yml atomically\
@@ -90,22 +92,29 @@ nodes:
 - id: audit_state
   dimension: Module
   status: clean
-  associated_file: spec/compiled/MiniPRD_AuditState.md
-  description: "audit_state.py \u2014 Reconciles state_graph.yml against the actual\
-    \ filesystem. Detects and reports failed or drifted modules after a crash or manual\
-    \ file move, prints a human-readable diff, and writes corrected statuses back\
-    \ to state_graph.yml atomically.\n"
+  associated_file: audit_state.py
+  description: "audit_state.py \u2014 CLI tool (--workspace <path>) that reconciles\
+    \ state_graph.yml against the actual workspace filesystem. Applies four reconciliation\
+    \ rules in priority order per module: (1) compiled file exists \u2192 force to\
+    \ integrated; (2) draft file missing for draft-required statuses \u2192 revert\
+    \ to pending_extraction; (3) failed status \u2192 AUDIT ALERT only, no auto-recovery;\
+    \ (4) stale .orchestrator.lock \u2192 AUDIT ALERT only, no auto-deletion. Saves\
+    \ state_graph.yml atomically only when changes are made; prints a diff summary\
+    \ of all changes and alerts.\n"
   inputs:
   - data_type: state_graph_yml
     source_id: orchestrator_core
-  - data_type: filesystem_scan
+  - data_type: workspace_directory
     source_id: workspace_init
   outputs:
   - data_type: reconciled_state_graph_yml
     target_id: orchestrator_core
+  - data_type: audit_report
+    target_id: human_operator
   edges:
     depends_on:
     - orchestrator_core
+    - state_graph_schema
     implements:
     - orchestrator_system
 - id: archive_manager
@@ -114,10 +123,10 @@ nodes:
   associated_file: spec/compiled/MiniPRD_ArchiveManager.md
   description: "archive_manager.py \u2014 Exposes archive_draft(module_id, workspace_path)\
     \ and archive_compiled(module_id, workspace_path). Both move their respective\
-    \ source files (active/draft_*.md and compiled/final_*.md) to archive/ with\
-    \ microsecond-precision timestamps (%Y%m%d_%H%M%S_%f) to prevent collision.\
-    \ Logs INFO and returns gracefully if the source file is absent. Only this module\
-    \ may write to archive/; all other agents are blocked by .agentignore.\n"
+    \ source files (active/draft_*.md and compiled/final_*.md) to archive/ with microsecond-precision\
+    \ timestamps (%Y%m%d_%H%M%S_%f) to prevent collision. Logs INFO and returns gracefully\
+    \ if the source file is absent. Only this module may write to archive/; all other\
+    \ agents are blocked by .agentignore.\n"
   inputs:
   - data_type: active_draft_files
     source_id: orchestrator_core
@@ -260,16 +269,20 @@ nodes:
 - id: skill_forge_persona
   dimension: Module
   status: clean
-  associated_file: spec/compiled/MiniPRD_ForgePersona.md
-  description: "/forge_persona slash command \u2014 Creates or updates adversarial\
-    \ persona files via guided interview. On --update, checks workspace_registry for\
-    \ active jobs using the persona and warns operator. Writes to .agents/schemas/personas/\
-    \ with version and changelog.\n"
+  associated_file: .agents/skills/forge_persona/SKILL.md
+  description: "/forge_persona slash command \u2014 3-batch guided interview (max\
+    \ 2 questions per turn) producing a versioned Markdown persona file. CREATE mode:\
+    \ anti-overwrite check, operator CONFIRM gate, saves to .agents/schemas/personas/<id>.md.\
+    \ UPDATE mode: loads existing persona, checks workspace_registry for active jobs\
+    \ referencing the persona (warns and requires CONFIRM), increments version, appends\
+    \ timestamped changelog entry.\n"
   inputs:
   - data_type: operator_interview_answers
     source_id: human_operator
   - data_type: workspace_list
     source_id: workspace_registry
+  - data_type: existing_persona_md_file
+    source_id: persona_library
   outputs:
   - data_type: persona_md_file
     target_id: persona_library
@@ -282,12 +295,20 @@ nodes:
 - id: skill_extract
   dimension: Module
   status: clean
-  associated_file: spec/compiled/MiniPRD_Extract.md
-  description: "/extract [module_id] slash command \u2014 Maps transcripts/raw_input.md\
-    \ to the module's template schema. Writes [NEEDS_CLARIFICATION] for any missing\
-    \ data. Routes output to tests/candidate_outputs/. Advances state_graph.yml status\
-    \ to extracted.\n"
+  associated_file: extract.py
+  description: "extract.py \u2014 Python CLI invoked as `python extract.py <module_id>\
+    \ --workspace <path>`. Loads state_graph.yml via load_state(); resolves the module\
+    \ entry and its associated_files.template path. Aborts with exit code 1 if\
+    \ transcripts/raw_input.md is missing or empty. Constructs a Technical Scraper\
+    \ prompt (system instruction + template + transcript) and invokes `claude -p`\
+    \ as a subprocess to produce draft_content. Counts [NEEDS_CLARIFICATION] markers;\
+    \ prints WARNING if any found. Writes draft to active/draft_<module_id>.md and\
+    \ copies to tests/candidate_outputs/draft_<module_id>.md. Atomically advances\
+    \ state_graph.yml status to 'extracted' via save_state() (tmp\u2192rename). Does\
+    \ not advance status if the claude subprocess exits non-zero.\n"
   inputs:
+  - data_type: state_graph_yml
+    source_id: orchestrator_core
   - data_type: raw_transcript
     source_id: orchestrator_core
   - data_type: template_file
@@ -295,6 +316,8 @@ nodes:
   outputs:
   - data_type: draft_md
     target_id: candidate_output_protocol
+  - data_type: draft_md_copy
+    target_id: skill_redteam
   - data_type: state_update
     target_id: orchestrator_core
   edges:
@@ -401,9 +424,12 @@ nodes:
   status: clean
   associated_file: init_workspace.py
   description: "create_workspace() \u2014 Orchestrates the full workspace creation\
-    \ flow: guards against overwriting, calls validators, creates subdirs, writes\
-    \ state_graph.yml, ensures test dirs, appends to registry, prints summary. All\
-    \ validation runs before any filesystem write.\n"
+    \ flow. Guard logic: if workspace_dir exists AND is a valid workspace (has state_graph.yml),\
+    \ aborts without --force or wipes with --force; if workspace_dir exists but is\
+    \ NOT a valid workspace, always aborts regardless of --force to prevent data loss.\
+    \ Calls validate_persona_ids() and validate_template_ids() before any filesystem\
+    \ write. Creates subdirs, writes state_graph.yml, ensures test dirs, appends to\
+    \ registry, prints summary.\n"
   inputs:
   - data_type: job_name_str
     source_id: fn_build_parser
@@ -519,8 +545,9 @@ nodes:
   associated_file: init_workspace.py
   description: "build_parser() \u2014 Configures and returns the argparse.ArgumentParser\
     \ for init_workspace.py. Defines: job_name (positional), --workspace-root (optional\
-    \ path), --force (flag), --personas (repeatable IDs), --templates (repeatable\
-    \ IDs).\n"
+    \ path, default: cwd), --force (flag), --personas (repeatable IDs), --templates\
+    \ (repeatable IDs), --repo-root (suppressed internal override used by integration\
+    \ tests to redirect schema and registry paths).\n"
   inputs:
   - data_type: sys_argv
     source_id: human_operator
