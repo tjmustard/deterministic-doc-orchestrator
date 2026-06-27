@@ -1,0 +1,65 @@
+# Schema: Product Requirements Document (PRD)
+# Enforces the DDO Minimal Contract (meta + evidence_bank)
+
+meta:
+  doc_type: "prd"
+  title: "[REQUIRES USER INPUT]"
+  version: "0.1.0"
+  date: "[REQUIRES USER INPUT: ISO-8601]"
+  authors: []
+  status: "draft"
+  persona: "product_critic"
+  output_formats: ["pdf", "html", "md"]
+  template: "prd"
+  review_log: [] # Populated by ddo-refine
+
+content:
+  sections:
+    - id: "problem_statement"
+      title: "1. Problem Statement"
+      body: "[REQUIRES USER INPUT]"
+      claims: []
+      evidence: [] # IDs mapping to evidence_bank
+      
+    - id: "target_audience"
+      title: "2. Target Audience & User Personas"
+      body: "[REQUIRES USER INPUT]"
+      claims: []
+      evidence: []
+
+    - id: "user_stories"
+      title: "3. User Stories"
+      body: "[REQUIRES USER INPUT: Format as 'As a [user], I want to [action] so that [value].']"
+      claims: []
+      evidence: []
+
+    - id: "requirements"
+      title: "4. Functional Requirements"
+      body: "[REQUIRES USER INPUT]"
+      claims: []
+      evidence: []
+
+    - id: "acceptance_criteria"
+      title: "5. Acceptance Criteria"
+      body: "[REQUIRES USER INPUT: Must be strictly testable Boolean conditions.]"
+      claims: []
+      evidence: []
+
+    - id: "success_metrics"
+      title: "6. Success Metrics (KPIs)"
+      body: "[REQUIRES USER INPUT]"
+      claims: []
+      evidence: []
+
+    - id: "out_of_scope"
+      title: "7. Out of Scope"
+      body: "[REQUIRES USER INPUT]"
+      claims: []
+      evidence: []
+
+evidence_bank:
+  # Example node structure:
+  # - id: "user_survey_q3_2026"
+  #   type: "data"
+  #   content: "78% of enterprise users reported navigating the legacy dashboard took >5 minutes."
+  #   source: "Q3 2026 UX Survey Results, internal CRM."

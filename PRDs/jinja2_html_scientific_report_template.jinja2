@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ meta.title }}</title>
+    <style>
+        body {
+            font-family: "Times New Roman", Times, serif;
+            line-height: 1.6;
+            color: #000;
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 2rem;
+            text-align: justify;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        h1 { font-size: 24px; margin-bottom: 0.5rem; }
+        h2 { font-size: 18px; margin-top: 2rem; }
+        .authors { font-size: 16px; margin-bottom: 0.5rem; }
+        .abstract-container {
+            margin: 0 auto 2rem auto;
+            padding: 1.5rem;
+            width: 85%;
+            background: #fdfdfd;
+            border-top: 1px solid #ccc;
+            border-bottom: 1px solid #ccc;
+        }
+        .abstract-title { text-align: center; font-weight: bold; margin-bottom: 0.5rem; }
+        .abstract-text { font-size: 14px; }
+        .keywords { font-size: 13px; margin-top: 1rem; font-style: italic; }
+        .reference-item {
+            font-size: 14px;
+            margin-bottom: 0.8rem;
+            padding-left: 1.5rem;
+            text-indent: -1.5rem;
+        }
+        .ref-source { color: #555; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>{{ meta.title }}</h1>
+    <div class="authors">{{ meta.authors | join(', ') }}</div>
+    <div style="font-size: 14px; font-style: italic;">Corresponding Author: {{ meta.corresponding_author }}</div>
+    <div style="font-size: 14px;">Date: {{ meta.date }}</div>
+</header>
+
+<div class="abstract-container">
+    <div class="abstract-title">Abstract</div>
+    <div class="abstract-text">{{ meta.abstract | replace('\n', '<br>') }}</div>
+    <div class="keywords">Keywords: {{ meta.keywords | join(', ') }}</div>
+</div>
+
+<main>
+    {% for section in content.sections %}
+    <section id="{{ section.id }}">
+        <h2>{{ section.title }}</h2>
+        <div>
+            {{ section.body | replace('\n', '<br>') }}
+        </div>
+    </section>
+    {% endfor %}
+</main>
+
+{% if evidence_bank and evidence_bank | length > 0 %}
+<footer>
+    <h2 id="references">References & Evidence</h2>
+    {% for item in evidence_bank %}
+    <div class="reference-item">
+        <strong>[{{ item.id }}]</strong> {% if item.type != 'citation' %}<em>({{ item.type }})</em>{% endif %} {{ item.content }}<br>
+        <span class="ref-source">Source: {{ item.source }}</span>
+    </div>
+    {% endfor %}
+</footer>
+{% endif %}
+
+</body>
+</html>

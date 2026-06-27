@@ -1,0 +1,60 @@
+# Schema: Scientific Report (IMRaD Format)
+# Enforces the DDO Minimal Contract (meta + evidence_bank)
+
+meta:
+  doc_type: "scientific_report"
+  title: "[REQUIRES USER INPUT: Full Title]"
+  version: "1.0.0"
+  date: "[REQUIRES USER INPUT: ISO-8601]"
+  authors: [] # Format: "First Last, Affiliation"
+  corresponding_author: "[REQUIRES USER INPUT: Email]"
+  abstract: "[REQUIRES USER INPUT: 250 word maximum summary]"
+  keywords: []
+  status: "draft"
+  persona: "scientific_reviewer"
+  output_formats: ["pdf", "html", "md"]
+  template: "scientific_report"
+  review_log: []
+
+content:
+  sections:
+    - id: "introduction"
+      title: "1. Introduction"
+      body: "[REQUIRES USER INPUT: Background, gap in literature, and specific hypothesis.]"
+      claims: []
+      evidence: [] 
+
+    - id: "methods"
+      title: "2. Materials and Methods"
+      body: "[REQUIRES USER INPUT: Must contain sufficient detail for reproduction.]"
+      claims: []
+      evidence: []
+
+    - id: "results"
+      title: "3. Results"
+      body: "[REQUIRES USER INPUT: Objective observations only. No interpretation.]"
+      claims: []
+      evidence: []
+
+    - id: "discussion"
+      title: "4. Discussion"
+      body: "[REQUIRES USER INPUT: Interpretation of results, limitations, and future work.]"
+      claims: []
+      evidence: []
+
+    - id: "conclusion"
+      title: "5. Conclusion"
+      body: "[REQUIRES USER INPUT: Brief summary of findings and their impact.]"
+      claims: []
+      evidence: []
+
+evidence_bank:
+  # Example node structure:
+  # - id: "einstein1905"
+  #   type: "citation"
+  #   content: "Einstein, A. (1905). On the Electrodynamics of Moving Bodies. Annalen der Physik."
+  #   source: "DOI:10.1002/andp.19053221004"
+  # - id: "dataset_raw_spectroscopy"
+  #   type: "data"
+  #   content: "Raw NMR spectroscopy dataset showing peak at 2.4 ppm."
+  #   source: "Github/lab-repo/data/nmr_01.csv"

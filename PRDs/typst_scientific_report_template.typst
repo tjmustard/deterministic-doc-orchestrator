@@ -1,0 +1,78 @@
+// Template: Scientific Report
+// Consumes: DDO scientific_report.yaml schema
+
+#let data_file = sys.inputs.at("data_file", default: "document_data.yaml")
+#let data = yaml(data_file)
+
+// Document Setup
+#set document(title: data.meta.title, author: data.meta.authors)
+#set page(
+  paper: "us-letter",
+  margin: (x: 1in, y: 1in),
+  header: align(right)[
+    #text(8pt, fill: luma(120), font: "New Computer Modern")[
+      #data.meta.title | #data.meta.date
+    ]
+  ],
+  numbering: "1"
+)
+// Academic styling: Serif font, justified text
+#set text(font: "New Computer Modern", size: 11pt)
+#set par(justify: true, leading: 0.65em)
+#set heading(numbering: "1.1")
+
+// Title Block
+#align(center)[
+  #block(text(weight: "bold", 18pt, data.meta.title))
+  #v(1em)
+  #text(size: 12pt)[
+    #data.meta.authors.join(", ")
+  ]
+  #v(0.5em)
+  #text(size: 10pt, style: "italic")[
+    Corresponding Author: #data.meta.corresponding_author
+  ]
+]
+#v(2em)
+
+// Abstract
+#align(center)[
+  #box(width: 85%)[
+    #text(weight: "bold", 11pt)[Abstract]
+    #v(0.5em)
+    #align(left)[
+      #text(size: 10pt)[#data.meta.abstract]
+      #v(0.5em)
+      #text(size: 9pt, weight: "bold")[Keywords:] #text(size: 9pt)[#data.meta.keywords.join(", ")]
+    ]
+  ]
+]
+#v(3em)
+
+// Two-column layout for main content
+#show: columns.with(2, gutter: 0.25in)
+
+// Content Sections
+#for section in data.content.sections [
+  #heading(level: 1, section.title)
+  #v(0.5em)
+  #block(section.body)
+  #v(1em)
+]
+
+// References (Evidence Bank)
+#if "evidence_bank" in data and data.evidence_bank.len() > 0 [
+  #heading(level: 1, "References & Evidence")
+  #v(0.5em)
+  #set text(size: 9pt)
+  #for item in data.evidence_bank [
+    #block(
+      width: 100%,
+      [
+        [#item.id] #if item.type != "citation" [*(#item.type)*] #item.content \
+        #text(fill: luma(100))[Source: #item.source]
+      ]
+    )
+    #v(0.5em)
+  ]
+]

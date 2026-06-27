@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: >-
+  If you use Deterministic Document Orchestrator in your research or reference it in a paper,
+  please cite it using the metadata below.
+type: software
+title: "Deterministic Document Orchestrator"
+abstract: >-
+  An AI-augmented document engine that transforms structured YAML source files into
+  reproducible PDFs, HTML, and Markdown via a strict 5-phase pipeline with mandatory
+  human-in-the-loop gates and a zero-hallucination constraint.
+authors:
+  - given-names: Thomas
+    family-names: Mustard
+    alias: tjmustard
+repository-code: "https://github.com/tjmustard/deterministic-doc-orchestrator"
+license: MIT
+version: "0.0.0"
+date-released: "2026-06-26"
+keywords:
+  - Deterministic Document Orchestrator
+  - document generation
+  - YAML
+  - zero-hallucination
+  - human-in-the-loop

@@ -1,0 +1,31 @@
+# {{ meta.title }}
+
+**Authors:** {{ meta.authors | join(', ') }}  
+**Corresponding Author:** {{ meta.corresponding_author }}  
+**Date:** {{ meta.date }}  
+
+---
+
+**Abstract** {{ meta.abstract }}
+
+**Keywords:** {{ meta.keywords | join(', ') }}
+
+---
+
+{% for section in content.sections %}
+## {{ section.title }}
+
+{{ section.body }}
+
+{% endfor %}
+
+{% if evidence_bank and evidence_bank | length > 0 %}
+---
+## References & Evidence
+
+{% for item in evidence_bank %}
+**[{{ item.id }}]** {% if item.type != 'citation' %}*({{ item.type }})*{% endif %} {{ item.content }}  
+*Source: {{ item.source }}*
+
+{% endfor %}
+{% endif %}

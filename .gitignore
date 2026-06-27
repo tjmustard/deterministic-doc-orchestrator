@@ -1,0 +1,70 @@
+# --- DDO Project Ignores ---
+
+# HACF hyper-* toolchain (skills, commands, scripts — not project code)
+# Matches: .agents/skills/hyper-*/, .claude/commands/hyper-*.md, .agents/scripts/hyper_*.py, etc.
+hyper-*
+hyper_*
+hypergraph_*
+
+# Spec and test artifacts — preserve directory structure with .gitkeep, ignore runtime content
+spec/active/*
+!spec/active/.gitkeep
+spec/archive/*
+!spec/archive/.gitkeep
+spec/compiled/*
+!spec/compiled/.gitkeep
+spec/process/*
+!spec/process/.gitkeep
+tests/candidate_outputs/*
+!tests/candidate_outputs/.gitkeep
+tests/fixtures/*
+!tests/fixtures/.gitkeep
+tests/integration/*
+!tests/integration/.gitkeep
+
+# DDO generated output
+Documents/
+
+# Python / uv
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Runtime artifacts
+*.log
+*.swp
+tmp/
+/tests
+/spec
+.agents/scripts/semantic_graph_merger.py
+.agents/scripts/token_budget_checker.py
+.agents/scripts/override_manager.py
+.agents/scripts/model_router.py
+.agents/scripts/meta_loader.py
+.agents/scripts/heuristic_classifier.py
+.agents/scripts/interrupt_detector.py
+.agents/scripts/pre-commit
+.agents/scripts/thinking_token_monitor.py
+.agents/scripts/token_budget_reconciler.py
+.agents/scripts/archive_specs.py
+.agents/schemas/SuperPRD_Template.md
+.agents/scripts/ceiling_resolver.py
+.agents/scripts/ceiling_enforcer.py
+.agents/scripts/compaction_engine.py
+.agents/schemas/MiniPRD_template.md
+.agents/schemas/plan_Template.md
+/.agents/schemas/project-templates
+.agents/schemas/DESIGN_Template.md
+.agents/schemas/final_truth_template.md
+.agents/schemas/META_template.md
+.agents/schemas/todo_Template.md
+HACF-install.sh
+media/ddo-logo.png
