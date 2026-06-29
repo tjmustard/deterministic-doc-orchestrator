@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acme Widget Sync Service - PRD</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            border-bottom: 1px solid #eaeaea;
+            padding-bottom: 2rem;
+        }
+        h1 { color: #111; margin-bottom: 0.5rem; }
+        h2 { color: #222; margin-top: 2.5rem; border-bottom: 1px solid #eaeaea; padding-bottom: 0.3rem; }
+        .meta-info { color: #666; font-size: 0.9rem; }
+        .evidence-card {
+            background: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .evidence-card strong { color: #555; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Acme Widget Sync Service</h1>
+    <div class="meta-info">
+        <strong>Product Requirements Document</strong><br>
+        Version: 0.1.0 | Date: 2026.06.27 | Status: DRAFT<br>
+        Authors: Dana Lee, Product, Sam Okoro, Engineering
+    </div>
+</header>
+
+<main>
+
+    <section id="problem_statement">
+        <h2>1. Problem Statement</h2>
+        <div>
+            Field technicians currently re-key widget telemetry by hand between the depot system and the mobile app. The manual step is slow and introduces transcription errors that surface as billing disputes downstream.
+        </div>
+    </section>
+
+    <section id="target_audience">
+        <h2>2. Target Audience & User Personas</h2>
+        <div>
+            The primary user is a depot field technician who reconciles widget readings during a shift. The secondary user is a billing analyst who resolves disputes raised by customers.
+        </div>
+    </section>
+
+    <section id="user_stories">
+        <h2>3. User Stories</h2>
+        <div>
+            As a field technician, I want widget readings to sync automatically so that I do not have to re-enter them into two systems.
+        </div>
+    </section>
+
+    <section id="requirements">
+        <h2>4. Functional Requirements</h2>
+        <div>
+            The service must pull readings from the depot API every five minutes, deduplicate by widget serial, and push deltas to the mobile app store.
+        </div>
+    </section>
+
+    <section id="success_metrics">
+        <h2>5. Success Metrics (KPIs)</h2>
+        <div>
+            Reduce billing disputes attributable to telemetry mismatch and cut the average reconciliation time per shift.
+        </div>
+    </section>
+
+    <section id="out_of_scope">
+        <h2>6. Out of Scope</h2>
+        <div>
+            Real-time streaming, predictive maintenance, and any change to the depot hardware are out of scope for this release.
+        </div>
+    </section>
+
+</main>
+
+
+<footer>
+    <h2 id="evidence-bank">Appendix: Evidence Bank</h2>
+
+    <div class="evidence-card">
+        <strong>ID:</strong> <code>support_ticket_audit</code> (data)<br>
+        <strong>Source:</strong> Internal support ticket audit, sample window 2026.01 - 2026.03.<br>
+        <strong>Content:</strong> 412 of 530 sampled billing disputes traced to a telemetry value that differed between the depot system and the mobile app.
+    </div>
+
+    <div class="evidence-card">
+        <strong>ID:</strong> <code>persona_interviews</code> (interview)<br>
+        <strong>Source:</strong> Field technician interview notes, 2026.04.<br>
+        <strong>Content:</strong> Six field technicians described re-keying readings twice per shift; all six ranked it their top time sink.
+    </div>
+
+    <div class="evidence-card">
+        <strong>ID:</strong> <code>scope_decision_log</code> (decision)<br>
+        <strong>Source:</strong> Product steering meeting minutes, 2026.05.12.<br>
+        <strong>Content:</strong> Steering group deferred streaming and predictive maintenance to a later release to keep v1 shippable.
+    </div>
+
+</footer>
+
+
+</body>
+</html>

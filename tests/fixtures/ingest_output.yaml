@@ -1,0 +1,154 @@
+# DDO PRD — collaborative authoring draft (working copy; promoted to
+# tests/fixtures/ingest_output.yaml on final human sign-off).
+# Sections are appended ONLY after explicit per-section approval.
+meta:
+  doc_type: "prd"
+  title: "Deterministic Document Orchestrator (DDO)"
+  version: "0.0.1"
+  date: "2026.06.29"
+  authors:
+    - "Thomas J. L. Mustard"
+  status: "draft"
+  persona: "product_critic"
+  output_formats: ["pdf", "html", "md"]
+  template: "prd"
+  review_log: []
+
+content:
+  sections:
+    - id: "problem_statement"
+      title: "1. Problem Statement"
+      body: >-
+        AI-assisted document generation is unreliable: the model is a black box
+        that hallucinates facts, invents citations, and produces output that
+        cannot be verified against a ground truth. The Deterministic Document
+        Orchestrator (DDO) eliminates this by separating data (version-controlled,
+        human-verified YAML) from presentation (deterministic templates). The AI
+        performs cognitive work — extracting structure from sources and, in later
+        phases, critiquing and refining — but never writes directly to the final
+        document. Because identical YAML and template always produce identical
+        output, every word in a rendered PDF, HTML, or Markdown file traces back
+        to a reviewable source of truth rather than to an opaque generation step.
+      claims: []
+      evidence: ["ev-superprd-problem", "ev-ddo-core-tenets"]
+
+    - id: "target_audience"
+      title: "2. Target Audience & User Personas"
+      body: >-
+        DDO targets the system's designer and other technical users who generate
+        structured documents — primarily product requirements documents and
+        scientific reports — and who require reproducibility and zero
+        hallucination. It is a Claude Code-driven toolkit: single-user,
+        local-filesystem operation, not a SaaS product.
+      claims: []
+      evidence: ["ev-superprd-audience"]
+
+    - id: "user_stories"
+      title: "3. User Stories"
+      body: |-
+        - As an author, I want to render a valid document_data.yaml to PDF, HTML, and Markdown via one command, so that I get reproducible documents from a single source.
+        - As an author, I want build.py to refuse to render an invalid document, so that I never ship a doc with broken evidence links or unfilled gaps.
+        - As an author, I want byte-identical PDF output on demand, so that I can verify reproducibility when needed.
+        - As an author, I want to ingest raw local sources into a schema-shaped document_data.yaml with gaps flagged, so that I start from structure without hallucinated content.
+        - As an author, I want ddo-render to compute the correct output path and invoke the build, so that I don't manage paths by hand.
+        - As a maintainer, I want a regression suite that locks determinism and validation, so that future changes can't silently break the core guarantees.
+      claims: []
+      evidence: ["ev-superprd-userstories"]
+
+    - id: "requirements"
+      title: "4. Functional Requirements"
+      body: |-
+        - FR-1 (Core mutation): The system transforms raw local sources into a version-controlled document_data.yaml (zero-hallucination, gaps flagged), then deterministically renders that YAML to PDF, HTML, and Markdown. document_data.yaml is the single mutable source of truth; every rendered file is a derived, disposable artifact.
+        - FR-2 (Hermetic orchestrator): A single PEP 723 build.py renders a validated document_data.yaml to PDF (Typst, in-process) and HTML/Markdown (Jinja2), run via `uv run --locked`. Routing is CLI-authoritative (--template/--format); meta is descriptive metadata only.
+        - FR-3 (Validation gate): build.py is the single validation gate, exposed as an importable function. It parses the YAML, enforces the meta + evidence_bank contract, checks evidence-reference integrity, and scans for unfilled-input tokens — failing closed with one precise message on the first failure.
+        - FR-4 (Schema contract): Documents follow a "fully dynamic with minimal contract" schema — a required meta block and an evidence_bank array, with claim-to-evidence linkage enforced at the section level.
+        - FR-5 (Ingest, zero-hallucination): ddo-ingest maps local sources into a schema-shaped document_data.yaml, inventing nothing; any field that cannot be filled from a source is flagged with a namespaced unfilled-input sentinel (a REQUIRES_INPUT marker) rather than guessed. It writes atomically with an overwrite guard, runs an advisory fabrication tripwire, and halts at a human-in-the-loop review gate.
+        - FR-6 (Render skill): ddo-render derives the output path and CLI flags from meta and invokes build.py; it writes no files itself and never hand-edits a rendered artifact.
+        - FR-7 (Hermeticity & determinism): Rendering is hermetic — dependencies are pinned and lock-enforced, fonts are bundled, and no system Typst or Pandoc is used — so identical YAML + template produce identical output on the same host.
+        - FR-8 (Path safety): Output paths derive from a sanitized slug and are asserted to be contained within Documents/, failing closed on any escape.
+      claims: []
+      evidence: ["ev-superprd-architecture", "ev-superprd-validation-gate", "ev-superprd-hermeticity", "ev-ddo-schema-arch", "ev-ddo-pipeline"]
+
+    - id: "acceptance_criteria"
+      title: "5. Acceptance Criteria"
+      body: |-
+        - AC-1 (render): Both example documents (prd, scientific_report) render to PDF, HTML, and Markdown via build.py with exit 0 (test_examples_render_all_formats).
+        - AC-2 (HTML/MD determinism): Repeated HTML/MD renders are byte-identical after normalization (test_html_md_byte_identical).
+        - AC-3 (PDF determinism): Repeated PDF renders are text-layer-identical; with the same --timestamp they are byte-identical (test_pdf_content_identical, test_pdf_timestamp_byte_identical).
+        - AC-4 (validation): Every validation check fails closed with a precise message on crafted-invalid inputs (test_validation_gate.py, pass + fail paths).
+        - AC-5 (ingest): ddo-ingest turns a fixed fixture source into a schema-valid, renderable YAML with gaps flagged and zero invented content, human-verified (test_ingest_contract_and_renderability).
+        - AC-6 (path safety): A malicious or illegal title cannot escape Documents/ (test_slug_containment).
+        - AC-7 (lint/suite): `uv run pytest`, `uv run ruff check .`, and `uv run ruff format --check .` all exit 0.
+      claims: []
+      evidence: ["ev-superprd-metrics"]
+
+    - id: "success_metrics"
+      title: "6. Success Metrics (KPIs)"
+      body: |-
+        These are outcome-level success criteria (pass/fail); no quantitative KPIs are defined for v0.0.1.
+        - SM-1 (Ingest): A raw text brief is successfully ingested into a schema-valid document_data.yaml via ddo-ingest.
+        - SM-2 (Render): A document_data.yaml successfully renders into PDF, Markdown, and HTML via ddo-render.
+        - SM-3 (Adversarial loop — deferred/forward target): A complete Red Team -> Interview -> Refine loop patches a logical gap in a test document without corrupting the YAML structure.
+      claims: []
+      evidence: ["ev-ddo-success-criteria"]
+
+    - id: "out_of_scope"
+      title: "7. Out of Scope"
+      body: |-
+        The following are explicitly out of scope for v0.0.1 (deferred to v0.0.2+):
+        - The entire adversarial loop: ddo-red-team, ddo-interview, ddo-refine, and the ddo-run composite.
+        - DOCX / Pandoc output; network or URL ingestion; web-source provenance; multi-page HTML; template generation; ddo-create-persona; ddo-migrate; quality scoring; review_history/ snapshots; multi-author interview.
+        - Any document types beyond prd and scientific_report.
+        - Cross-machine determinism beyond the bundled-lockfile-and-fonts contract; determinism is asserted same-host only.
+      claims: []
+      evidence: ["ev-superprd-scope"]
+
+evidence_bank:
+  - id: "ev-superprd-problem"
+    type: "document"
+    content: "AI-assisted document generation is unreliable: the model is a black box that hallucinates facts, invents citations, and produces output that cannot be verified against a ground truth. DDO eliminates this by separating data (YAML, version-controlled, human-verified) from presentation (templates, deterministically applied)."
+    source: "spec/compiled/SuperPRD.md, Section 1 (Problem Statement)"
+  - id: "ev-ddo-core-tenets"
+    type: "document"
+    content: "Core tenets: YAML as the source of truth; deterministic output (same YAML + same template = identical output); mandatory human-in-the-loop phase gates; adversarial by default."
+    source: "PRDs/DDO_PRD.md, Section 2 (Core Tenets)"
+  - id: "ev-superprd-audience"
+    type: "document"
+    content: "The system's designer and other technical users who generate structured documents (PRDs, scientific reports) and require reproducibility and zero hallucination. DDO is a Claude Code / HACF-driven toolkit — single-user, local-filesystem operation, not a SaaS product."
+    source: "spec/compiled/SuperPRD.md, Section 1 (Target Audience)"
+  - id: "ev-superprd-userstories"
+    type: "document"
+    content: "Six atomic user stories (US-001..US-006): render valid YAML to PDF/HTML/MD via one command; refuse to render an invalid document; byte-identical PDF via --timestamp; ingest local sources into schema-shaped YAML with gaps flagged; ddo-render derives the output path and invokes build.py; a regression suite locks determinism and validation."
+    source: "spec/compiled/SuperPRD.md, Section 4 (User Stories)"
+  - id: "ev-superprd-architecture"
+    type: "document"
+    content: "The Core Mutation: raw sources -> version-controlled document_data.yaml (zero-hallucination, gaps flagged) -> deterministic render (Typst PDF / Jinja2 HTML+MD); document_data.yaml is the single mutable state and every rendered file is a derived artifact. build.py resolution: pdf -> Typst in-process; html/md -> Jinja2; routing is CLI-authoritative off --template/--format, never meta."
+    source: "spec/compiled/SuperPRD.md, Section 5 (Architecture / build.py resolution rule)"
+  - id: "ev-superprd-validation-gate"
+    type: "document"
+    content: "build.py is the single validation gate, exposed as an importable function, run before any render: (1) parse YAML; (2) contract — meta with required keys, non-empty title/version, dotted date, evidence_bank array; (3) evidence-ref integrity — referenced ids exist, duplicates rejected, orphans warn, contentless doc rejected; (4) abort on any remaining namespaced unfilled-input sentinel (the DDO REQUIRES_INPUT marker) in a parsed string value. Exits nonzero with a precise message on first failure."
+    source: "spec/compiled/SuperPRD.md, Section 5 (Validation gate)"
+  - id: "ev-superprd-hermeticity"
+    type: "document"
+    content: "Hermeticity: PEP 723 deps pinned with ==, a committed lockfile enforced via uv run --locked, fonts bundled in ddo/fonts/; no system Typst/Pandoc. Determinism asserted same-host with normalized outputs. Path safety: slug = title -> lowercase -> whitelist [a-z0-9-] -> strip dots -> forbid '..' -> length cap 80; resolved output path asserted inside Documents/ (realpath containment), failing closed."
+    source: "spec/compiled/SuperPRD.md, Section 5 (Hermeticity; Path safety)"
+  - id: "ev-ddo-schema-arch"
+    type: "document"
+    content: "Schema Architecture: 'Fully Dynamic with Minimal Contract.' Dynamic YAML requires a meta block and an evidence_bank array. Claim linkage is enforced at the section level."
+    source: "PRDs/DDO_PRD.md, Section 3 (Technical Constraints & Decisions)"
+  - id: "ev-ddo-pipeline"
+    type: "document"
+    content: "ddo-ingest transforms raw sources into document_data.yaml and flags missing data; ddo-render is a hermetic Python orchestrator converting YAML to the target format via Typst/Jinja2."
+    source: "PRDs/DDO_PRD.md, Section 4 (The 5-Phase HACF Skill Pipeline)"
+  - id: "ev-superprd-metrics"
+    type: "document"
+    content: "Success metrics, each tied to a named test: M1 both example docs render to PDF/HTML/MD exit 0 (test_examples_render_all_formats); M2 HTML/MD byte-identical (test_html_md_byte_identical); M3 PDF text-layer-identical (test_pdf_content_identical), M3b --timestamp byte-identical (test_pdf_timestamp_byte_identical); M4 validation fails closed with precise messages (test_validation_gate.py); M5 ingest produces schema-valid renderable YAML with gaps flagged and zero invented content (test_ingest_contract_and_renderability); M6 a malicious title cannot escape Documents/ (test_slug_containment); M7 pytest + ruff check + ruff format --check all exit 0."
+    source: "spec/compiled/SuperPRD.md, Section 8 (Success Metrics)"
+  - id: "ev-ddo-success-criteria"
+    type: "document"
+    content: "Success criteria: (1) successfully ingest a raw text brief into YAML (ddo-ingest); (2) successfully render YAML into PDF, Markdown, and HTML (ddo-render); (3) execute a complete HACF Red Team -> Interview -> Refine loop patching a logical gap in a test document without corrupting the YAML structure."
+    source: "PRDs/DDO_PRD.md, Section 6 (Success Criteria)"
+  - id: "ev-superprd-scope"
+    type: "document"
+    content: "Out-of-scope (deferred to v0.0.2+): the entire adversarial loop (ddo-red-team, ddo-interview, ddo-refine, ddo-run composite); DOCX/Pandoc output, network/URL ingestion, web-source provenance, multi-page HTML, template generation, ddo-create-persona, ddo-migrate, quality scoring, review_history/ snapshots, multi-author interview; any document types beyond prd and scientific_report; cross-machine determinism beyond the bundled-lockfile-and-fonts contract (same-host only)."
+    source: "spec/compiled/SuperPRD.md, Section 3 (Out-of-Scope)"

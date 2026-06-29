@@ -1,0 +1,62 @@
+# Acme Widget Sync Service
+**Product Requirements Document**
+
+* **Version:** 0.1.0
+* **Date:** 2026.06.27
+* **Status:** DRAFT
+* **Authors:** Dana Lee, Product, Sam Okoro, Engineering
+
+---
+
+
+## 1. Problem Statement
+
+Field technicians currently re-key widget telemetry by hand between the depot system and the mobile app. The manual step is slow and introduces transcription errors that surface as billing disputes downstream.
+
+
+## 2. Target Audience & User Personas
+
+The primary user is a depot field technician who reconciles widget readings during a shift. The secondary user is a billing analyst who resolves disputes raised by customers.
+
+
+## 3. User Stories
+
+As a field technician, I want widget readings to sync automatically so that I do not have to re-enter them into two systems.
+
+
+## 4. Functional Requirements
+
+The service must pull readings from the depot API every five minutes, deduplicate by widget serial, and push deltas to the mobile app store.
+
+
+## 5. Success Metrics (KPIs)
+
+Reduce billing disputes attributable to telemetry mismatch and cut the average reconciliation time per shift.
+
+
+## 6. Out of Scope
+
+Real-time streaming, predictive maintenance, and any change to the depot hardware are out of scope for this release.
+
+
+
+
+---
+## Appendix: Evidence Bank
+
+
+**ID:** `support_ticket_audit` (data)
+**Source:** Internal support ticket audit, sample window 2026.01 - 2026.03.
+**Content:** 412 of 530 sampled billing disputes traced to a telemetry value that differed between the depot system and the mobile app.
+
+
+**ID:** `persona_interviews` (interview)
+**Source:** Field technician interview notes, 2026.04.
+**Content:** Six field technicians described re-keying readings twice per shift; all six ranked it their top time sink.
+
+
+**ID:** `scope_decision_log` (decision)
+**Source:** Product steering meeting minutes, 2026.05.12.
+**Content:** Steering group deferred streaming and predictive maintenance to a later release to keep v1 shippable.
+
+
