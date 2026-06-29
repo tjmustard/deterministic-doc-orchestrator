@@ -1,0 +1,82 @@
+# Example PRD document_data.yaml — test INPUT (not a human-gated fixture).
+# Satisfies the DDO minimal contract and passes ddo.validation.validate().
+meta:
+  doc_type: "prd"
+  title: "Acme Widget Sync Service"
+  version: "0.1.0"
+  date: "2026.06.27"
+  authors:
+    - "Dana Lee, Product"
+    - "Sam Okoro, Engineering"
+  status: "draft"
+  persona: "product_critic"
+  output_formats: ["pdf", "html", "md"]
+  template: "prd"
+
+content:
+  sections:
+    - id: "problem_statement"
+      title: "1. Problem Statement"
+      body: >-
+        Field technicians currently re-key widget telemetry by hand between the
+        depot system and the mobile app. The manual step is slow and introduces
+        transcription errors that surface as billing disputes downstream.
+      claims:
+        - "Manual re-keying is the primary source of telemetry errors."
+      evidence: ["support_ticket_audit"]
+
+    - id: "target_audience"
+      title: "2. Target Audience & User Personas"
+      body: >-
+        The primary user is a depot field technician who reconciles widget
+        readings during a shift. The secondary user is a billing analyst who
+        resolves disputes raised by customers.
+      claims: []
+      evidence: ["persona_interviews"]
+
+    - id: "user_stories"
+      title: "3. User Stories"
+      body: >-
+        As a field technician, I want widget readings to sync automatically so
+        that I do not have to re-enter them into two systems.
+      claims: []
+      evidence: ["persona_interviews"]
+
+    - id: "requirements"
+      title: "4. Functional Requirements"
+      body: >-
+        The service must pull readings from the depot API every five minutes,
+        deduplicate by widget serial, and push deltas to the mobile app store.
+      claims:
+        - "A five-minute poll interval covers the observed shift cadence."
+      evidence: ["support_ticket_audit"]
+
+    - id: "success_metrics"
+      title: "5. Success Metrics (KPIs)"
+      body: >-
+        Reduce billing disputes attributable to telemetry mismatch and cut the
+        average reconciliation time per shift.
+      claims: []
+      evidence: ["support_ticket_audit"]
+
+    - id: "out_of_scope"
+      title: "6. Out of Scope"
+      body: >-
+        Real-time streaming, predictive maintenance, and any change to the
+        depot hardware are out of scope for this release.
+      claims: []
+      evidence: ["scope_decision_log"]
+
+evidence_bank:
+  - id: "support_ticket_audit"
+    type: "data"
+    content: "412 of 530 sampled billing disputes traced to a telemetry value that differed between the depot system and the mobile app."
+    source: "Internal support ticket audit, sample window 2026.01 - 2026.03."
+  - id: "persona_interviews"
+    type: "interview"
+    content: "Six field technicians described re-keying readings twice per shift; all six ranked it their top time sink."
+    source: "Field technician interview notes, 2026.04."
+  - id: "scope_decision_log"
+    type: "decision"
+    content: "Steering group deferred streaming and predictive maintenance to a later release to keep v1 shippable."
+    source: "Product steering meeting minutes, 2026.05.12."

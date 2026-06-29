@@ -1,6 +1,6 @@
 [project]
 name = "deterministic-doc-orchestrator"
-version = "0.0.0"
+version = "0.0.1"
 requires-python = ">=3.10"
 dependencies = []
 
@@ -16,13 +16,18 @@ ignore = ["D100", "D104"]
 convention = "google"
 
 [tool.ruff.lint.isort]
-known-first-party = ["ddo"]
+known-first-party = ["ddo", "scripts"]
 
 [tool.ruff.format]
 quote-style = "double"
 
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
 [dependency-groups]
 dev = [
+    "pypdf>=4.0",
     "pytest>=9.0.3",
     "ruff>=0.15.20",
 ]

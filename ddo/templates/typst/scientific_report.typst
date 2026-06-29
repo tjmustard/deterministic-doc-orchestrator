@@ -10,14 +10,14 @@
   paper: "us-letter",
   margin: (x: 1in, y: 1in),
   header: align(right)[
-    #text(8pt, fill: luma(120), font: "New Computer Modern")[
+    #text(8pt, fill: luma(120), font: "DejaVu Serif")[
       #data.meta.title | #data.meta.date
     ]
   ],
   numbering: "1"
 )
 // Academic styling: Serif font, justified text
-#set text(font: "New Computer Modern", size: 11pt)
+#set text(font: "DejaVu Serif", size: 11pt)
 #set par(justify: true, leading: 0.65em)
 #set heading(numbering: "1.1")
 

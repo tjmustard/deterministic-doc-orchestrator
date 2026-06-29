@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-    <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/releases/latest"><img src="https://img.shields.io/badge/release-v0.0.0-blue" alt="Latest Release"/></a>
+    <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/releases/latest"><img src="https://img.shields.io/badge/release-v0.0.1-blue" alt="Latest Release"/></a>
     <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/stargazers"><img src="https://img.shields.io/github/stars/tjmustard/deterministic-doc-orchestrator?style=social" alt="GitHub stars"/></a>
     <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/blob/main/LICENSE"><img src="https://img.shields.io/github/license/tjmustard/deterministic-doc-orchestrator" alt="License"/></a>
 </p>
@@ -42,8 +42,8 @@ The core problem DDO solves: AI-assisted document generation is unreliable becau
 
 - [Python 3.10+](https://www.python.org/downloads/)
 - [uv](https://docs.astral.sh/uv/) — package manager
-- [Typst](https://typst.app/) — for PDF rendering
-- Jinja2 — installed automatically via `uv sync`
+
+Typst (for PDF rendering) and all other dependencies are installed automatically — no system-level Typst install required.
 
 ### Installation
 
@@ -56,8 +56,8 @@ uv sync
 ### Running the Build
 
 ```bash
-# Render a document
-uv run ddo/build.py --data <path/to/document_data.yaml> --template <template_name> --format <pdf|html|md> --output <output_path>
+# Render a document (PEP 723 hermetic — lockfile enforced)
+uv run --locked ddo/build.py --data <path/to/document_data.yaml> --template <template_name> --format <pdf|html|md> --output <output_path>
 
 # Lint (both must pass before any PR)
 uv run ruff check .
@@ -68,8 +68,6 @@ uv run pytest
 uv run pytest tests/unit/        # unit only
 uv run pytest tests/integration/ # integration only
 ```
-
-> **Note:** `ddo/build.py` is not yet scaffolded. The commands above describe the target interface once the core pipeline is implemented.
 
 ## 📚 Core Architecture
 
@@ -84,16 +82,27 @@ DDO is built on five architectural pillars that together enforce reproducibility
 ## 📂 Directory Structure
 
 ```
-ddo/                  # Planned — not yet scaffolded
-├── schemas/          # YAML schema contracts (meta block + evidence_bank required)
+ddo/
+├── build.py          # PEP 723 hermetic build orchestrator (`uv run --locked ddo/build.py`)
+├── validation.py     # Importable validation gate (validate() + ValidationError)
+├── paths.py          # Pure path helpers (slug sanitizer + path containment check)
+├── ingest.py         # Atomic write, overwrite guard, fabrication tripwire
+├── schemas/          # YAML schema contracts (prd.yaml, scientific_report.yaml)
 ├── templates/        # Typst (.typst) and Jinja2 (.jinja2) rendering templates
 ├── personas/         # Adversarial review lenses (product_critic, scientific_reviewer)
-├── skills/           # ddo-*.md cognitive node definitions
-└── build.py          # Hermetic build orchestrator (invoke via `uv run`)
+├── fonts/            # Bundled DejaVu fonts (hermetic — no system fonts required)
+└── skills/           # ddo-ingest.md and ddo-render.md cognitive node definitions
 
-PRDs/                 # Project planning documents, domain schemas, and template stubs
+scripts/              # fixture_signoff_guard.py — pre-commit/CI guard for fixture promotion
+tests/
+├── unit/             # Pure unit tests (validation, paths, ingest, persona structure)
+├── integration/      # End-to-end render determinism + ingest contract tests
+├── fixtures/         # Human-promoted golden regression baselines (DDO_FIXTURE_SIGNOFF=1)
+└── data/             # Test input YAML files (example documents)
+
+spec/compiled/        # Ground truth: architecture.yml, SuperPRD.md
+tutorials/            # Step-by-step workflow tutorials (ddo-v001-prd-workflow/, ...)
 Documents/            # Generated output — gitignored; YYYY.MM.DD_DocType_Title/ structure
-
 .agents/              # HACF framework toolchain (skills, schemas, rules, scripts, memory)
 .claude/              # Claude Code slash command bridges and settings
 ```
@@ -149,8 +158,8 @@ meta:
   doc_type: scientific_report
   title: "Example Document"
   version: "1.0"
-  date: "2026-06-26"
-  persona: scientific_reviewer
+  date: "2026.06.29"          # dotted date format
+  persona: scientific_reviewer  # optional — used by Red Team phase
   template: scientific_report
   output_formats: [pdf, html, md]
 
@@ -166,7 +175,7 @@ content:
       evidence: [ev-001]
 ```
 
-See `PRDs/product_requirements_document_schema.yaml` and `PRDs/scientific_report_schema.yaml` for the full canonical schemas.
+See `ddo/schemas/prd.yaml` and `ddo/schemas/scientific_report.yaml` for the full canonical schemas.
 
 ## 🖨️ Supported Output Formats
 
@@ -186,24 +195,34 @@ See `PRDs/product_requirements_document_schema.yaml` and `PRDs/scientific_report
 
 ## 🗺️ Roadmap
 
-- [ ] Core Pipeline
-  - [ ] `ddo-ingest` skill
-  - [ ] `ddo-render` skill
+- [x] Core Pipeline (v0.0.1)
+  - [x] `ddo-ingest` skill
+  - [x] `ddo-render` skill
   - [ ] `ddo-red-team` skill
   - [ ] `ddo-interview` skill
   - [ ] `ddo-refine` skill
-  - [ ] `build.py` hermetic build orchestrator
-- [ ] Schemas
-  - [ ] PRD schema (`product_requirements_document_schema.yaml`)
-  - [ ] Scientific report schema (`scientific_report_schema.yaml`)
-- [ ] Templates
-  - [ ] Typst PRD template
-  - [ ] Typst scientific report template
-  - [ ] Jinja2 HTML templates
-  - [ ] Jinja2 Markdown templates
-- [ ] Personas
-  - [ ] Product Critic
-  - [ ] Scientific Reviewer
+  - [x] `build.py` hermetic build orchestrator (PEP 723, bundled Typst + fonts)
+  - [x] `validation.py` importable validation gate
+  - [x] `paths.py` slug sanitizer + path containment
+  - [x] `ingest.py` atomic write, overwrite guard, fabrication tripwire
+- [x] Schemas (v0.0.1)
+  - [x] PRD schema (`ddo/schemas/prd.yaml`)
+  - [x] Scientific report schema (`ddo/schemas/scientific_report.yaml`)
+- [x] Templates (v0.0.1)
+  - [x] Typst PRD template
+  - [x] Typst scientific report template
+  - [x] Jinja2 HTML templates (autoescape enabled)
+  - [x] Jinja2 Markdown templates
+- [x] Personas (v0.0.1)
+  - [x] Product Critic
+  - [x] Scientific Reviewer
+- [x] Test Suite (v0.0.1)
+  - [x] 78 tests passing (unit + integration)
+  - [x] Golden regression baselines with human sign-off guard
+- [x] Tutorials (v0.0.1)
+  - [x] PRD YAML workflow tutorial (`tutorials/ddo-v001-prd-workflow/`)
+  - [ ] Scientific report workflow tutorial (planned v0.0.2)
+- [ ] Red Team / Interview / Refine pipeline phases (v0.0.2+)
 
 ## 🤝 Support
 

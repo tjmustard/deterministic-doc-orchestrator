@@ -41,7 +41,7 @@ ddo/
 └── build.py     # PEP 723 hermetic build orchestrator (invoke via `uv run`)
 
 Documents/       # Generated output — gitignored; structure: YYYY.MM.DD_DocType_Title/
-PRDs/            # Project-level planning documents and domain schemas
+PRDs/            # Project-level planning documents (domain schemas now live in ddo/schemas/)
 spec/compiled/   # Ground truth: architecture.yml, SuperPRD, MiniPRDs
 spec/active/     # Working drafts — temporary, archived after each phase
 tests/fixtures/  # Verified regression baselines
@@ -81,7 +81,7 @@ Every `document_data.yaml` file must satisfy the DDO minimal contract:
 1. A `meta` block (includes `doc_type`, `title`, `version`, `date`, `persona`, `template`, `output_formats`).
 2. An `evidence_bank` array — every claim in `content.sections[*].evidence` must reference an ID present here.
 
-See `PRDs/product_requirements_document_schema.yaml` and `PRDs/scientific_report_schema.yaml` for the canonical schemas.
+See `ddo/schemas/prd.yaml` and `ddo/schemas/scientific_report.yaml` for the canonical schemas.
 
 ---
 

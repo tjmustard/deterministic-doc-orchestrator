@@ -6,21 +6,17 @@ hyper-*
 hyper_*
 hypergraph_*
 
-# Spec and test artifacts — preserve directory structure with .gitkeep, ignore runtime content
+# Spec and test artifacts (Surgical .gitignore Matrix, SuperPRD §5 / Red Team #8).
+# Keep runtime/working dirs ignored (structure preserved via .gitkeep). The tracked
+# dirs — spec/compiled, spec/process, tests/{unit,integration,fixtures} — are
+# committable and intentionally NOT listed here. tests/fixtures content is gated by
+# the human sign-off guard (scripts/fixture_signoff_guard.py), not by .gitignore.
 spec/active/*
 !spec/active/.gitkeep
 spec/archive/*
 !spec/archive/.gitkeep
-spec/compiled/*
-!spec/compiled/.gitkeep
-spec/process/*
-!spec/process/.gitkeep
 tests/candidate_outputs/*
 !tests/candidate_outputs/.gitkeep
-tests/fixtures/*
-!tests/fixtures/.gitkeep
-tests/integration/*
-!tests/integration/.gitkeep
 
 # DDO generated output
 Documents/
@@ -42,8 +38,6 @@ Thumbs.db
 *.log
 *.swp
 tmp/
-/tests
-/spec
 .agents/scripts/semantic_graph_merger.py
 .agents/scripts/token_budget_checker.py
 .agents/scripts/override_manager.py

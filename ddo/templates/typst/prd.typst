@@ -16,7 +16,7 @@
   ],
   numbering: "1 / 1"
 )
-#set text(font: "Helvetica Neue", size: 10pt, fill: luma(30))
+#set text(font: "DejaVu Sans", size: 10pt, fill: luma(30))
 #set heading(numbering: none)
 #show heading: set text(fill: black)
 
