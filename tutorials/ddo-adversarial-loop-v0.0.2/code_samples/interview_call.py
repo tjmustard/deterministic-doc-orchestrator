@@ -38,7 +38,7 @@ def run_interview(doc_dir: Path, version: int | None = None, batch_size: int = 2
     # ... agent presents pending[:batch_size], halts at [WAITING FOR USER RESPONSE] ...
 
     # After the user responds, build the resolutions. acknowledge/dispute/defer
-    # carry patch:null; revise -> set, add_evidence -> append_evidence.
+    # carry patch:null; revise -> set, add_evidence -> append (target: evidence_bank).
     log = {
         "meta": {"version": version, "timestamp": datetime.now(timezone.utc).isoformat()},
         "resolutions": [
@@ -58,7 +58,8 @@ def run_interview(doc_dir: Path, version: int | None = None, batch_size: int = 2
                 "decision": "add_evidence",
                 "detail": "Attach the GC dataset.",
                 "patch": {
-                    "op": "append_evidence",
+                    "op": "append",
+                    "target": "evidence_bank",
                     "value": {
                         "id": "gc_monomer_residue",
                         "type": "data",

@@ -224,7 +224,7 @@ def test_apply_patches_null_patch_skipped():
 
 
 def test_apply_patches_append_evidence():
-    """append_evidence op appends a dict to evidence_bank."""
+    """append_evidence op is removed — apply_patches must raise ValueError (unknown op)."""
     data = _valid_doc()
     new_entry = {"id": "ev-2", "type": "fact", "content": "Added fact.", "source": "test"}
     log = _make_log(
@@ -237,13 +237,12 @@ def test_apply_patches_append_evidence():
             }
         ]
     )
-    result = apply_patches(data, log)
-    assert result["evidence_bank"][-1] == new_entry
-    assert len(result["evidence_bank"]) == 2
+    with pytest.raises(ValueError, match="unknown op"):
+        apply_patches(data, log)
 
 
 def test_apply_patches_append_review_log_creates_list():
-    """append_review_log creates meta.review_log if absent."""
+    """append_review_log op is removed — apply_patches must raise ValueError (unknown op)."""
     data = _valid_doc()
     record = {"version": 1, "decision": "acknowledge", "note": "Intentional."}
     log = _make_log(
@@ -256,12 +255,12 @@ def test_apply_patches_append_review_log_creates_list():
             }
         ]
     )
-    result = apply_patches(data, log)
-    assert result["meta"]["review_log"] == [record]
+    with pytest.raises(ValueError, match="unknown op"):
+        apply_patches(data, log)
 
 
 def test_apply_patches_append_review_log_extends_existing():
-    """append_review_log extends an existing meta.review_log list."""
+    """append_review_log op is removed — apply_patches must raise ValueError (unknown op)."""
     data = _valid_doc()
     data["meta"]["review_log"] = [{"existing": True}]
     record = {"new": True}
@@ -275,8 +274,8 @@ def test_apply_patches_append_review_log_extends_existing():
             }
         ]
     )
-    result = apply_patches(data, log)
-    assert len(result["meta"]["review_log"]) == 2
+    with pytest.raises(ValueError, match="unknown op"):
+        apply_patches(data, log)
 
 
 def test_apply_patches_is_pure_does_not_mutate_input():
@@ -388,7 +387,7 @@ def test_apply_patches_unknown_op_raises():
 
 
 def test_apply_patches_append_evidence_non_dict_raises():
-    """append_evidence with a non-dict value raises ValueError."""
+    """append_evidence is removed — apply_patches raises ValueError regardless of value shape."""
     data = _valid_doc()
     log = _make_log(
         [
@@ -400,7 +399,7 @@ def test_apply_patches_append_evidence_non_dict_raises():
             }
         ]
     )
-    with pytest.raises(ValueError, match="dict"):
+    with pytest.raises(ValueError, match="unknown op"):
         apply_patches(data, log)
 
 

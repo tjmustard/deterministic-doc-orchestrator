@@ -264,9 +264,6 @@ def apply_patches(data: dict, log: dict) -> dict:
     * ``"set"`` — replace an existing leaf scalar; the path must resolve to a
       scalar of the **same type** as the new value; auto-vivify, type changes,
       and non-scalar targets are hard errors.
-    * ``"append_evidence"`` — append one entry to ``evidence_bank``.
-    * ``"append_review_log"`` — append one record to ``meta.review_log``
-      (creates the list if absent).
 
     ``patch`` is ``null`` (``None``) for ``acknowledge``/``dispute``/``defer``
     resolutions; these are skipped without error.
@@ -325,33 +322,6 @@ def apply_patches(data: dict, log: dict) -> dict:
                 )
 
             parent[final_key] = value
-
-        elif op == "append_evidence":
-            if not isinstance(value, dict):
-                raise ValueError(
-                    f"apply_patches: resolution[{i}] append_evidence value must be a "
-                    f"dict, got {type(value).__name__}"
-                )
-            bank = patched.get("evidence_bank")
-            if not isinstance(bank, list):
-                raise ValueError(
-                    f"apply_patches: resolution[{i}] append_evidence: evidence_bank "
-                    f"is missing or not a list"
-                )
-            bank.append(value)
-
-        elif op == "append_review_log":
-            if not isinstance(patched.get("meta"), dict):
-                raise ValueError(
-                    f"apply_patches: resolution[{i}] append_review_log: meta block is missing"
-                )
-            review_log = patched["meta"].setdefault("review_log", [])
-            if not isinstance(review_log, list):
-                raise ValueError(
-                    f"apply_patches: resolution[{i}] append_review_log: "
-                    f"meta.review_log is not a list"
-                )
-            review_log.append(value)
 
         elif op == "append":
             if not isinstance(target, str):
@@ -437,8 +407,7 @@ def apply_patches(data: dict, log: dict) -> dict:
         else:
             raise ValueError(
                 f"apply_patches: resolution[{i}] unknown op {op!r}; "
-                f"supported: set, append, delete, insert, "
-                f"append_evidence, append_review_log"
+                f"supported: set, append, delete, insert"
             )
 
     return patched

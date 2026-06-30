@@ -8,9 +8,37 @@ This file updates dynamically after *every task completion*. It captures the "No
 - Agent reads this *first* to understand where to pick up.
 
 ## Current Sprint Goal
-**DDO v0.0.3 — COMPLETE ✅ (2026-06-30)**
+**DDO v0.0.4 — COMPLETE ✅ (2026-06-30)**
 
-Structural Patch DSL fully implemented, audited, and released. 188 tests passing.
+Structured Persona Nomenclature fully implemented, audited, and released. 183 tests passing.
+
+## v0.0.4 Implementation Summary
+
+### New Files
+- `ddo/skills/ddo-create-persona.md` — interactive paced Q&A skill for authoring new personas (AV-NN table format, HITL gated, cognitive overwrite guard, no ddo_core dependency)
+- `spec/compiled/SuperPRD_v0.0.4_StructuredPersonaNomenclature.md` — specification for this release
+
+### Changed
+- `ddo/personas/product_critic.md` — `## Attack Vectors` restructured to 3-column AV-NN table (AV-01..AV-06)
+- `ddo/personas/scientific_reviewer.md` — same AV-NN table restructure (AV-01..AV-06)
+- `ddo/skills/ddo-red-team.md` — echoes AV table into report context; binds category to `AV-NN: <name>`; hard-fails on missing table (RT-05)
+- `ddo/skills/ddo-interview.md` — op list updated to `set | append | delete | insert`; legacy deprecation section removed
+- `ddo/refine.py` — `append_evidence`/`append_review_log` branches removed; unknown-op error lists `set, append, delete, insert` only
+- `ddo/review.py` — `OP_ENUM` reduced to `frozenset({"set","append","delete","insert"})`
+- `tests/unit/test_personas.py` — rewritten as glob-based AV-table validator (stdlib re; parametrized over ddo/personas/*.md)
+- `tests/unit/test_refine.py` — 4 legacy-op tests flipped to ValueError rejection
+- `tests/unit/test_review.py` — 2 net-new ReportValidationError rejection tests for removed ops
+- `tutorials/ddo-adversarial-loop-v0.0.2/code_samples/interview_call.py` — migrated to `op: append`
+- `tutorials/ddo-adversarial-loop-v0.0.2/tutorial.md` — deprecated-ops rows reworded to past tense
+
+### Hypergraph (spec/compiled/architecture.yml)
+- `skill_create_persona` node added (Atomic, ddo_skills/ddo_personas deps, no ddo_core)
+- All 26 nodes now `status: clean`
+
+### Documentation Updated (v0.0.4)
+- `CHANGELOG.md` — `## [0.0.4]` block completed with Added/Changed/Removed/Documentation sections
+- `README.md` — badge v0.0.3 → v0.0.4; skills listing adds ddo-create-persona.md; Red Team phase updated; roadmap v0.0.4 section added; test count 188 → 183
+- `.agents/memory/activeContext.md` — this file
 
 ## v0.0.3 Implementation Summary
 
@@ -59,6 +87,5 @@ Structural Patch DSL fully implemented, audited, and released. 188 tests passing
 - `tutorials/ddo-adversarial-loop-v0.0.2/output_files/interview_log_v1.yaml` — F-004 migrated from `append_evidence` to `{op: append, target: "evidence_bank"}`
 - Both tutorials are now accurate against v0.0.3
 
-## Next Steps (v0.0.4+)
-- Remove `append_evidence` and `append_review_log` ops (deprecated in v0.0.3)
+## Next Steps (v0.0.5+)
 - Scientific report workflow tutorial (`tutorials/ddo-v001-scientific-report-workflow/`)

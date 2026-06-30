@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-06-30
+
+### Added
+- **`ddo/skills/ddo-create-persona.md`**: New `ddo-create-persona` skill — paced Q&A loop (≤2 questions/turn) guiding persona authors through all six sections: Domain, Reviewing Mission, Attack Vectors (as AV-NN table), Severity Taxonomy, Domain-Specific Format Rules, Interview Question Templates. Cognitive overwrite guard with literal-filename re-confirm; `[WAITING FOR USER REVIEW]` gate before write; sentinel resolution required before commit. No `ddo_core` dependency (RT-03/RT-12).
+- **AV-NN Attack Vector tables** in `ddo/personas/product_critic.md` and `ddo/personas/scientific_reviewer.md`: `## Attack Vectors` restructured from prose to a 3-column Markdown table `| ID | Name | When to apply |`. `product_critic` rows AV-01–AV-06: `missing_acceptance_criteria`, `unsupported_value_claims`, `scope_creep`, `unmeasurable_success`, `hedging_language`, `contradictory_logic`. `scientific_reviewer` rows AV-01–AV-06: `methodological_vagueness`, `unsupported_assertions`, `statistical_ambiguity`, `overreaching_conclusions`, `missing_limitations`, `result_discussion_bleed`. Names use raw underscores (never `\_`); no literal `|` in cells.
+
+### Changed
+- **`ddo/skills/ddo-red-team.md`**: After resolving the persona, echoes the full `## Attack Vectors` table into report context; binds each finding's `category` to the persona's exact `AV-NN: <name>` string (cognitively enforced; free-text in schema, no enum in code). Added hard-fail clause (RT-05): if the resolved persona has no `## Attack Vectors` table, halts and names the persona — no free-text category fallback.
+- **`tests/unit/test_personas.py`**: Rewritten from hardcoded name list to glob-based AV-table validator parametrized over `ddo/personas/*.md`. Asserts per-persona: table existence and `| ID | Name | When to apply |` header; sequential AV-NN IDs from AV-01, unique; names match `^[a-z][a-z0-9_]*$`, unique, no escaped `\_`; no literal `|` in cells; all columns non-empty; no sentinel tokens. stdlib `re` only — no Markdown parser dependency.
+- **`tests/unit/test_refine.py`**: Flipped 4 legacy-op tests from success-path to rejection — `test_apply_patches_append_evidence`, `test_apply_patches_append_review_log_creates_list`, `test_apply_patches_append_review_log_extends_existing`, `test_apply_patches_append_evidence_non_dict_raises` — all now assert `ValueError(match="unknown op")`.
+- **`tests/unit/test_review.py`**: Added 2 rejection tests asserting `validate_interview_log` raises `ReportValidationError` for `op: append_evidence` and `op: append_review_log` (independent surface from `apply_patches`, RT-15).
+- **`ddo/skills/ddo-interview.md`**: `op:` line updated to `set | append | delete | insert`; "Legacy Op Deprecation (v0.0.3)" section removed.
+- **Test suite**: 183 tests passing.
+
+### Removed
+- **`append_evidence` and `append_review_log` ops** removed from `apply_patches` (`ddo/refine.py`) and `OP_ENUM` (`ddo/review.py`). Both were deprecated in v0.0.3.
+  - Migrate `append_evidence` → `{op: append, target: "evidence_bank", value: {...}}`
+  - Migrate `append_review_log` → `{op: append, target: "meta.review_log", value: {...}}`
+
+### Documentation
+- **`tutorials/ddo-adversarial-loop-v0.0.2/code_samples/interview_call.py`**: Migrated `append_evidence` comment and op to `{op: append, target: "evidence_bank", value: {...}}`.
+- **`tutorials/ddo-adversarial-loop-v0.0.2/tutorial.md`**: Deprecated-ops rows reworded to past tense ("removed in v0.0.4 — migrate: ..."); rows retained as migration reference.
+
 ## [0.0.3] - 2026-06-30
 
 ### Added

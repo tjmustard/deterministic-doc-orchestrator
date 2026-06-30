@@ -34,16 +34,7 @@ SEVERITY_ENUM: frozenset[str] = frozenset({"Critical", "Major", "Minor"})
 DECISION_ENUM: frozenset[str] = frozenset(
     {"revise", "add_evidence", "acknowledge", "dispute", "defer"}
 )
-OP_ENUM: frozenset[str] = frozenset(
-    {
-        "set",
-        "append",
-        "delete",
-        "insert",
-        "append_evidence",
-        "append_review_log",
-    }
-)
+OP_ENUM: frozenset[str] = frozenset({"set", "append", "delete", "insert"})
 
 # Soft finding-count threshold (warn, not error)
 _FINDING_SOFT_CAP = 100
@@ -346,7 +337,7 @@ def validate_interview_log(log: dict) -> None:
                     f"must be one of {sorted(OP_ENUM)}"
                 )
 
-            # Structural ops require target (all except hardcoded append_* ops)
+            # All ops require target
             if op in {"set", "append", "delete", "insert"} and not has_target:
                 raise ReportValidationError(
                     f"interview_log.resolutions[{i}].patch.target: required for op {op!r}"

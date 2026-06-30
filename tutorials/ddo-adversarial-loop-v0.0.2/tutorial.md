@@ -152,8 +152,8 @@ choose one of five decisions:
 | `append` | `target` (list path, no `[N]` suffix), `value` | `at` | Never auto-vivifies a missing list |
 | `delete` | `target` (must end in `[N]`) | `value`, `at` | Triggers `DanglingRefError` if the entry's ID is still referenced |
 | `insert` | `target` (list path, no `[N]` suffix), `at` (non-neg int, not bool), `value` | — | `at > len(list)` is a hard error |
-| `append_evidence` *(deprecated — removed in v0.0.4)* | `value` | — | Migrate: `{op: append, target: "evidence_bank", value: {...}}` |
-| `append_review_log` *(deprecated — removed in v0.0.4)* | `value` | — | Migrate: `{op: append, target: "meta.review_log", value: {...}}` |
+| `append_evidence` *(removed in v0.0.4)* | — | — | Migrate: `{op: append, target: "evidence_bank", value: {...}}` |
+| `append_review_log` *(removed in v0.0.4)* | — | — | Migrate: `{op: append, target: "meta.review_log", value: {...}}` |
 
 A representative resolution set for the findings above:
 

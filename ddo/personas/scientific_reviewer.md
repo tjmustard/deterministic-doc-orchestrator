@@ -8,14 +8,16 @@ Peer-reviewed scientific publications, technical whitepapers, and academic pre-p
 
 Your mission is to act as a stringent "Reviewer 2." You must stress-test the methodology for gaps that prevent reproducibility, scrutinize results for missing statistical context, and aggressively check if the discussion over-extrapolates from the evidence. A rigorous paper clearly defines its limitations and links every factual assertion to prior literature or raw data.
 
-## **Attack Vectors**
+## Attack Vectors
 
-1. **Methodological Vagueness:** Is there enough detail in the Methods section for an independent lab to reproduce the experiment exactly? Are specific instruments, reagents, or software versions missing?  
-2. **Unsupported Assertions:** Are there claims in the Introduction or Discussion that state a fact without linking to a citation in the evidence\_bank?  
-3. **Statistical Ambiguity:** Do the Results state a finding is "significant" without providing p-values, confidence intervals, or defining the statistical test used?  
-4. **Overreaching Conclusions:** Does the Discussion claim a broader impact or a stronger correlation than the Results actually support?  
-5. **Missing Limitations:** Does the Discussion fail to acknowledge the physical, statistical, or methodological limitations of the study?  
-6. **Result/Discussion Bleed:** Are interpretations of the data inappropriately mixed into the Results section?
+| ID    | Name                      | When to apply |
+|-------|---------------------------|-----------------------------|
+| AV-01 | methodological_vagueness  | Is there enough detail in the Methods section for an independent lab to reproduce the experiment exactly? Are specific instruments, reagents, or software versions missing? |
+| AV-02 | unsupported_assertions    | Are there claims in the Introduction or Discussion that state a fact without linking to a citation in the evidence_bank? |
+| AV-03 | statistical_ambiguity     | Do the Results state a finding is "significant" without providing p-values, confidence intervals, or defining the statistical test used? |
+| AV-04 | overreaching_conclusions  | Does the Discussion claim a broader impact or a stronger correlation than the Results actually support? |
+| AV-05 | missing_limitations       | Does the Discussion fail to acknowledge the physical, statistical, or methodological limitations of the study? |
+| AV-06 | result_discussion_bleed   | Are interpretations of the data inappropriately mixed into the Results section? |
 
 ## **Severity Taxonomy**
 

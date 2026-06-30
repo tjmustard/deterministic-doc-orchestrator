@@ -370,6 +370,28 @@ def test_validate_interview_log_unknown_op_raises():
         validate_interview_log(log)
 
 
+def test_validate_interview_log_append_evidence_op_rejected():
+    """A patch with op='append_evidence' is deprecated and raises ReportValidationError."""
+    log = _valid_log()
+    log["resolutions"][0]["patch"] = {
+        "op": "append_evidence",
+        "value": {"id": "ev-new", "type": "fact", "content": "c", "source": "s"},
+    }
+    with pytest.raises(ReportValidationError, match="op"):
+        validate_interview_log(log)
+
+
+def test_validate_interview_log_append_review_log_op_rejected():
+    """A patch with op='append_review_log' is deprecated and raises ReportValidationError."""
+    log = _valid_log()
+    log["resolutions"][0]["patch"] = {
+        "op": "append_review_log",
+        "value": {"version": 1, "decision": "acknowledge", "note": "Logged."},
+    }
+    with pytest.raises(ReportValidationError, match="op"):
+        validate_interview_log(log)
+
+
 # ---------------------------------------------------------------------------
 # _vN derivation — report_version / current_version (M2)
 # ---------------------------------------------------------------------------

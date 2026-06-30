@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-    <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/releases/latest"><img src="https://img.shields.io/badge/release-v0.0.3-blue" alt="Latest Release"/></a>
+    <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/releases/latest"><img src="https://img.shields.io/badge/release-v0.0.4-blue" alt="Latest Release"/></a>
     <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/stargazers"><img src="https://img.shields.io/github/stars/tjmustard/deterministic-doc-orchestrator?style=social" alt="GitHub stars"/></a>
     <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/blob/main/LICENSE"><img src="https://img.shields.io/github/license/tjmustard/deterministic-doc-orchestrator" alt="License"/></a>
 </p>
@@ -92,9 +92,9 @@ ddo/
 ├── refine.py         # Mutation layer — only permitted writer of document_data.yaml at refine time
 ├── schemas/          # YAML schema contracts (prd.yaml, scientific_report.yaml)
 ├── templates/        # Typst (.typst) and Jinja2 (.jinja2) rendering templates
-├── personas/         # Adversarial review lenses (product_critic, scientific_reviewer)
+├── personas/         # Adversarial review lenses (product_critic, scientific_reviewer) — each with AV-NN Attack Vector tables
 ├── fonts/            # Bundled DejaVu fonts (hermetic — no system fonts required)
-└── skills/           # ddo-ingest.md, ddo-render.md, ddo-red-team.md, ddo-interview.md, ddo-refine.md
+└── skills/           # ddo-ingest.md, ddo-render.md, ddo-red-team.md, ddo-interview.md, ddo-refine.md, ddo-create-persona.md
 
 scripts/              # fixture_signoff_guard.py — pre-commit/CI guard for fixture promotion
 tests/
@@ -103,7 +103,7 @@ tests/
 ├── fixtures/         # Human-promoted golden regression baselines (DDO_FIXTURE_SIGNOFF=1)
 └── data/             # Test input YAML files (example documents)
 
-spec/compiled/        # Ground truth: architecture.yml, SuperPRD.md, SuperPRD_v0.0.2_AdversarialLoop.md
+spec/compiled/        # Ground truth: architecture.yml, SuperPRD.md, SuperPRD_v0.0.2_AdversarialLoop.md, SuperPRD_v0.0.4_StructuredPersonaNomenclature.md
 tutorials/            # Step-by-step workflow tutorials (ddo-v001-prd-workflow/, ddo-adversarial-loop-v0.0.2/, ...)
 Documents/            # Generated output — gitignored; YYYY.MM.DD_DocType_Title/ structure
 .agents/              # HACF framework toolchain (skills, schemas, rules, scripts, memory)
@@ -136,7 +136,7 @@ The DDO pipeline is strictly sequential. Each phase produces a verifiable artifa
 
 1. Check for a torn prior pass; halt if one is detected.
 2. The assigned persona reads the rendered Markdown or HTML (never the PDF).
-3. Applies the persona's attack-vector taxonomy; every finding receives a fixed-enum severity: `Critical`, `Major`, or `Minor`.
+3. Echoes the persona's `## Attack Vectors` table into report context; hard-fails if the table is absent. Applies the attack-vector taxonomy — each finding's `category` is bound to the persona's exact `AV-NN: <name>` string. Every finding receives a fixed-enum severity: `Critical`, `Major`, or `Minor`.
 4. Writes `red_team_report_vN.yaml` and a deterministic human-readable `red_team_view_vN.md` via `ddo.review`.
 
 **`[WAITING FOR USER REVIEW]`** — User reviews the critique before proceeding to interview.
@@ -150,7 +150,7 @@ The DDO pipeline is strictly sequential. Each phase produces a verifiable artifa
 
 ### Phase 5: Refine (`ddo-refine`)
 1. Torn-pass check; take a byte-for-byte snapshot of `document_data.yaml` (`document_data_pre_vN.yaml`) before any mutation.
-2. Apply patches from `interview_log_vN.yaml` purely in memory — supported ops: `set` (leaf-scalar only, no auto-vivify, no type change), `append` (list append), `delete` (list remove by index, blocked if dangling ref detected), `insert` (list insert at position `at`), `append_evidence`, `append_review_log`.
+2. Apply patches from `interview_log_vN.yaml` purely in memory — supported ops: `set` (leaf-scalar only, no auto-vivify, no type change), `append` (list append), `delete` (list remove by index, blocked if dangling ref detected), `insert` (list insert at position `at`).
 3. `DanglingRefError`: if a `delete` on `evidence_bank[N]` would leave `content.sections[*].evidence[]` references pointing to the deleted entry, the operation is refused and the `.paths` list is surfaced to the human. The interview agent must resolve all dangling refs before resubmitting the delete.
 4. Run `refine_structural_check` + `validate` in-memory; present a unified diff HITL gate (human authorization gate) before committing.
 5. Commit atomically; re-render via `ddo-render`.
@@ -230,7 +230,7 @@ See `ddo/schemas/prd.yaml` and `ddo/schemas/scientific_report.yaml` for the full
   - [x] Product Critic
   - [x] Scientific Reviewer (actively exercised in v0.0.2 adversarial loop)
 - [x] Test Suite
-  - [x] 188 tests passing (unit + integration)
+  - [x] 183 tests passing (unit + integration)
   - [x] Golden regression baselines with human sign-off guard
 - [x] Tutorials
   - [x] PRD YAML workflow tutorial (`tutorials/ddo-v001-prd-workflow/`)
@@ -242,6 +242,12 @@ See `ddo/schemas/prd.yaml` and `ddo/schemas/scientific_report.yaml` for the full
   - [x] `validate_interview_log` extended with `OP_ENUM` and per-op field rules (`ddo/review.py`)
   - [x] `ddo-interview` skill updated with structural patch syntax, deprecation notices, sequential-index warning
   - [x] `ddo-refine` skill updated with `DanglingRefError` handling and human authorization gate framing
+- [x] Structured Persona Nomenclature (v0.0.4)
+  - [x] AV-NN Attack Vector tables in `product_critic` and `scientific_reviewer` personas
+  - [x] `ddo-red-team` skill binds `category` to persona's `AV-NN: <name>`; hard-fails on missing table
+  - [x] `ddo-create-persona` skill — interactive guided authoring for new personas
+  - [x] `tests/unit/test_personas.py` rewritten as glob-based AV-table validator
+  - [x] `append_evidence` and `append_review_log` ops removed (`ddo/refine.py`, `ddo/review.py`)
 - [ ] Scientific report workflow tutorial
 
 ## 🤝 Support

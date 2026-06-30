@@ -90,6 +90,33 @@ Error: persona file 'ddo/personas/<name>.md' not found. Possible personas:
 
 Never silently fall back to a different persona.
 
+**Hard failure (RT-05):** After loading the persona file, scan it for a
+`## Attack Vectors` table.  If no such table is present, raise a named error
+and halt — do NOT fall back to emitting free-text categories:
+
+```
+Error: persona file 'ddo/personas/<name>.md' has no '## Attack Vectors' table.
+Red Team requires a structured AV table to enforce the AV-NN category contract.
+Add an '## Attack Vectors' section to the persona before running Red Team.
+```
+
+**Echo AV table into report context:** Once the persona file is confirmed to
+have a `## Attack Vectors` table, extract that table in full and embed it in
+the report header comment block so that every `AV-NN: <name>` reference in the
+findings is self-documenting for both AI agents and human auditors — without
+requiring the reviewer to open the persona file:
+
+```yaml
+# --- Active Persona: <persona_name> ---
+# Attack Vectors:
+# <paste the full ## Attack Vectors table here, verbatim>
+# ---------------------------------------
+meta:
+  version: <int N>
+  persona: <persona_name>
+  ...
+```
+
 ### 4. Read the Render
 
 Read the full text of `render_path`.  If the file is HTML, parse it for
@@ -104,7 +131,7 @@ finding, produce:
 |---|---|---|
 | `id` | `str` | Unique within this report (e.g. `F-001`) |
 | `severity` | `Critical \| Major \| Minor` | **Fixed enum** — hard error if outside it |
-| `category` | `str` | Free-text persona attack-vector name |
+| `category` | `str` | The active persona's exact `AV-NN: <name>` from its Attack Vectors table (free-text in the schema; consistency enforced cognitively). |
 | `location` | `str` | Section title or quoted span |
 | `description` | `str` | What is wrong or missing |
 | `suggestion` | `str` | How to fix it |
@@ -128,7 +155,7 @@ meta:
 findings:
   - id: "F-001"
     severity: Critical
-    category: "Missing Evidence"
+    category: "AV-01: missing_acceptance_criteria"
     location: "Section 2"
     description: "Claim X is unsubstantiated."
     suggestion: "Add evidence entry referencing source Y."

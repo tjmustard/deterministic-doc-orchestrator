@@ -87,7 +87,7 @@ Patch (if revise/add_evidence — see below, else null): ___
 
 ```yaml
 patch:
-  op: set | append_evidence | append_review_log
+  op: set | append | delete | insert
   target: <path DSL, e.g. content.sections[2].body>   # set: leaf-scalar only
   value: <new scalar | evidence entry | review-log record>
   depends_on: [<patch index>, ...]   # optional; drives skip-and-dependents
@@ -229,15 +229,6 @@ patch:
 ### AI candidate value display
 
 The `value` field in an `append`, `delete`, or `insert` patch is a Candidate Output. Display the full `value` dict in the decision prompt **before** writing it to the interview log, so the human can verify the proposed mutation. The Before/After diff in `ddo-refine` is the human authorization gate — the interview prompt is a proposal only.
-
-## Legacy Op Deprecation (v0.0.3)
-
-The following ops are **deprecated** and will be removed in v0.0.4:
-
-- `append_evidence` — use `{op: append, target: "evidence_bank", value: {...}}` instead
-- `append_review_log` — use `{op: append, target: "meta.review_log", value: {...}}` instead
-
-Both deprecated ops remain functional in v0.0.3 for backward compatibility.
 
 ## **Negative Constraints**
 
