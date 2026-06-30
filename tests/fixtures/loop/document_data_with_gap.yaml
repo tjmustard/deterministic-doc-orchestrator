@@ -1,0 +1,48 @@
+meta:
+  doc_type: "prd"
+  title: "[[DDO::REQUIRES_INPUT: Formal product title for the DDO pipeline documentation module]]"
+  version: "0.1.0"
+  date: "2026.06.29"
+  authors:
+    - "DDO Test Fixture (human-authored)"
+  status: "draft"
+  persona: "product_critic"
+  output_formats:
+    - "pdf"
+    - "html"
+    - "md"
+  template: "prd"
+  review_log: []
+
+content:
+  sections:
+    - id: "overview"
+      title: "1. Overview"
+      body: "The DDO pipeline transforms structured YAML source files into reproducible PDFs, HTML, and Markdown via a strict 5-phase process: Ingest, Render, Red Team, Interview, and Refine."
+      claims: []
+      evidence:
+        - "ev_ddo_spec"
+
+    - id: "acceptance_criteria"
+      title: "2. Acceptance Criteria"
+      body: "The pipeline must produce byte-identical output for identical inputs. All generated content must trace to a version-controlled YAML source. No sentinel tokens may remain in committed documents."
+      claims: []
+      evidence:
+        - "ev_ddo_spec"
+        - "ev_test_results"
+
+evidence_bank:
+  - id: "ev_ddo_spec"
+    type: "reference"
+    content: "DDO Architecture specification v0.0.2 defining the 5-phase pipeline and zero-hallucination invariant."
+    source: "spec/compiled/SuperPRD_v0.0.2_AdversarialLoop.md"
+
+  - id: "ev_test_results"
+    type: "data"
+    content: "DDO v0.0.2 automated test suite: 158 tests pass, 0 failures, 1 human-gated skip (run 2026-06-29)."
+    source: "CI run 2026-06-29"
+
+  - id: "ev_orphan_placeholder"
+    type: "note"
+    content: "Unreferenced placeholder evidence entry — intentional orphan for v0.0.3 structural patch delete test. Not cited by any section."
+    source: "tests/fixtures/loop/document_data_with_gap.yaml (design intent)"

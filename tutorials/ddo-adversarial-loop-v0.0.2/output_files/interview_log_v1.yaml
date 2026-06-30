@@ -1,8 +1,8 @@
 # review_history/interview_log_v1.yaml
 # Written by ddo-interview via ddo.review.write_interview_log (atomic, contained).
 # Decisions: F-001 revise (set), F-002/F-003 acknowledge (null -> meta.review_log),
-# F-004 add_evidence (append_evidence), F-005 defer (null).
-# Only the `set` and `append_evidence` patches mutate the document body/bank;
+# F-004 add_evidence (append target:evidence_bank), F-005 defer (null).
+# Only the `set` and `append` patches mutate the document body/bank;
 # acknowledge/defer carry patch:null. ddo-refine appends review_log records for
 # the acknowledged findings during the audit-reconcile step.
 meta:
@@ -53,7 +53,8 @@ resolutions:
     decision: add_evidence
     detail: "Attach the GC-MS dataset backing the monomer-residue claim."
     patch:
-      op: append_evidence
+      op: append
+      target: evidence_bank
       value:
         id: gc_monomer_residue
         type: data

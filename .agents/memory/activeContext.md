@@ -8,52 +8,57 @@ This file updates dynamically after *every task completion*. It captures the "No
 - Agent reads this *first* to understand where to pick up.
 
 ## Current Sprint Goal
-**DDO v0.0.2 — COMPLETE ✅ (2026-06-29)**
+**DDO v0.0.3 — COMPLETE ✅ (2026-06-30)**
 
-Adversarial loop fully implemented, 159 tests passing, tutorial verified, documentation updated.
+Structural Patch DSL fully implemented, audited, and released. 188 tests passing.
 
-## v0.0.2 Implementation Summary
+## v0.0.3 Implementation Summary
 
-### New Modules
-- `ddo/review.py` — Critique/interview data layer: `report_version`, `current_version`, `detect_incomplete_pass`, `validate_report`, `validate_interview_log`, `write_report`, `write_interview_log`, `mark_findings`, `append_history`, `render_report_view`, `render_history_view`
-- `ddo/refine.py` — Mutation layer: `parse_path` (hand-rolled DSL, never `eval`), `apply_patches` (pure), `refine_structural_check`, `snapshot_source` (`force=False`), `commit_refine` (`safe_dump(sort_keys=False, allow_unicode=True)`)
+### New in `ddo/refine.py`
+- `DanglingRefError(Exception)` — carries `paths: list[str]`; raised by `_dangling_ref_check` before a `delete` on `evidence_bank` proceeds
+- `_dangling_ref_check(doc, index)` — scans `content.sections[*].evidence[]` for the entry's `id`; uses `dict.get()` throughout (never raises `KeyError` on malformed input)
+- `apply_patches` extended with `append`, `delete`, `insert` op branches; all operate on the deep copy; mid-batch exception leaves original dict unchanged (atomicity)
+- `parse_path` NC-13 whitelist: key segments `[a-zA-Z_][a-zA-Z0-9_]*`; index brackets `\d+` only
 
-### New Skills
-- `ddo/skills/ddo-red-team.md` — Fresh-context firewall; delegates to `ddo.review`; emits `red_team_report_vN.yaml` + `red_team_view_vN.md`
-- `ddo/skills/ddo-interview.md` — Batched Q&A; 5 decision types; marks `decision_recorded` only
-- `ddo/skills/ddo-refine.md` — Full refine pipeline: snapshot → patch → validate → diff gate → commit → render → audit
+### Changed in `ddo/review.py`
+- `validate_interview_log`: `OP_ENUM` constant (frozenset of 6 valid ops); per-op field rules (`insert` requires `at`; `delete` forbids `value`; structural ops require `target`); `at` type validation
+
+### Updated Skills
+- `ddo/skills/ddo-interview.md`: structural patch YAML examples (`target:` field); sequential-index warning; dangling-ref advisory; `append_evidence`/`append_review_log` deprecated (removed in v0.0.4)
+- `ddo/skills/ddo-refine.md`: `DanglingRefError` handling section; multi-line diff note; human authorization gate framing
 
 ### Tests & Spec
-- `tests/unit/test_review.py` + `tests/unit/test_refine.py` — 81 new unit tests (159 total, 0 skipped)
-- `tests/integration/test_loop.py` — gap-closing integration test
-- `spec/compiled/SuperPRD_v0.0.2_AdversarialLoop.md` — 6 user stories, RT1–RT13, M1–M9 success metrics
+- `tests/unit/test_refine.py` — 17 new tests (total ~57): append/delete/insert ops, atomicity, sequential-index shift documentation, dangling ref edge cases
+- `tests/unit/test_review.py` — 11 new tests (total ~51): OP_ENUM acceptance + 6 invalid per-op field combination rejections
+- `tests/integration/test_loop.py` — refactored to `test_loop_pass[@parametrize]` with `id="set-based"` and `id="structural"` cases; both use `shutil.copy` for isolation
+- `tests/fixtures/loop/interview_log_v1_structural.yaml` — human-approved structural fixture (append + delete + insert)
+- `spec/compiled/architecture.yml` — 7 nodes reconciled `needs_review` → `clean` (ddo_system, ddo_core, ddo_skills, tests_unit, tests_integration, documents_output, skill_red_team)
 
-### Tutorial
-- `tutorials/ddo-adversarial-loop-v0.0.2/tutorial.md` — 6-section tutorial; verified byte-for-byte against real modules
-- `tutorials/ddo-adversarial-loop-v0.0.2/input_files/` — validate()-clean `document_data.yaml` + rendered MD
-- `tutorials/ddo-adversarial-loop-v0.0.2/output_files/` — report, view, log, history (all byte-verified)
-- `tutorials/ddo-adversarial-loop-v0.0.2/code_samples/` — skill→module delegation reference (3 phases)
-- `tutorials/ddo-adversarial-loop-v0.0.2/architecture_evolution/` — v0.0.1→v0.0.2 pipeline diagrams
-
-### Documentation Updated (v0.0.2)
-- `pyproject.toml` — version `0.0.1` → `0.0.2`
-- `CHANGELOG.md` — `## [0.0.2] - 2026-06-29` block added
-- `README.md` — badge, directory structure (`review.py`, `refine.py`, new skills), pipeline phase descriptions (3/4/5), roadmap (all v0.0.2 items checked; test count 78→159)
+### Documentation Updated (v0.0.3)
+- `pyproject.toml` — version `0.0.2` → `0.0.3`
+- `CHANGELOG.md` — `## [0.0.3] - 2026-06-30` block added
+- `README.md` — badge v0.0.2 → v0.0.3; Phase 5 updated with new ops and DanglingRefError; roadmap v0.0.3 section added; test count 159 → 188
 - `.agents/memory/activeContext.md` — this file
-- `.agents/memory/systemPatterns.md` — v0.0.2 patterns added
+- `.agents/memory/systemPatterns.md` — v0.0.3 patterns added
 
-## Key Design Decisions (v0.0.2)
+## Key Design Decisions (v0.0.3)
 
 | Decision | Rationale |
 |---|---|
-| `mark_findings` has two distinct fields (`decision_recorded` / `applied`) | Prevents interview from auto-committing; `applied` only set after render succeeds |
-| `snapshot_source(force=False)` | Double-snapshot fails closed, never clobbers a recovery point |
-| `safe_dump(sort_keys=False)` everywhere | Preserves YAML key insertion order; `sort_keys=True` is forbidden (RT#3) |
-| Path DSL is hand-rolled | `eval`/`exec` on user-controlled strings is a security non-starter |
-| `refine_structural_check` lives in `ddo.refine`, NOT `ddo.validation` | Keeps `validation_gate` unmodified (D5 preserved) |
-| `render_report_view` / `render_history_view` read stored data, not wall-clock | Views are deterministic replays of stored state |
-| Fresh-context firewall at `ddo-red-team` only | `ddo-interview` and `ddo-refine` are collaborative; firewall protects critique independence |
+| `DanglingRefError` has structured `.paths` attribute | `ddo-refine` can display a precise list to the human without string-parsing the exception message |
+| `_dangling_ref_check` uses `dict.get()` throughout | Malformed docs (missing `content`/`sections`) must not raise `KeyError` — they produce no dangling refs |
+| `at > len(list)` raises in `apply_patches` but `at == len` is valid (append-equivalent) | Matches Python `list.insert` semantics; avoids a confusing special case |
+| `isinstance(at, bool)` explicit rejection | `bool` is a subclass of `int` in Python; `True` (=1) and `False` (=0) would be silently accepted without this guard |
+| Sequential-index shift documented, not fixed | A batch with `insert at: 0` then `delete [3]` shifts indices — this is intentional and documented via a test |
+| `append_evidence`/`append_review_log` deprecated, not removed | Backwards compat for v0.0.3; hardcoded removal planned for v0.0.4 |
 
-## Next Steps (v0.0.3+)
+### Tutorial Audit & Fixes (2026-06-30)
+- `/hyper-tutorial-audit` run on both tutorials; audit files saved to `tutorials/*/audit_2026-06-30.md`
+- `tutorials/ddo-v001-prd-workflow/tutorial.md` — fixed stale test count (78→188); Related section updated from "v0.0.2 roadmap" to shipped link
+- `tutorials/ddo-adversarial-loop-v0.0.2/tutorial.md` — comprehensive v0.0.3 update: new ops table, `DanglingRefError`, NC-13 whitelist, sequential-index warning, pre-validation note, 4 new troubleshooting rows, stale row fixed
+- `tutorials/ddo-adversarial-loop-v0.0.2/output_files/interview_log_v1.yaml` — F-004 migrated from `append_evidence` to `{op: append, target: "evidence_bank"}`
+- Both tutorials are now accurate against v0.0.3
+
+## Next Steps (v0.0.4+)
+- Remove `append_evidence` and `append_review_log` ops (deprecated in v0.0.3)
 - Scientific report workflow tutorial (`tutorials/ddo-v001-scientific-report-workflow/`)
-- Commit v0.0.2 work (untracked files + architecture.yml changes)

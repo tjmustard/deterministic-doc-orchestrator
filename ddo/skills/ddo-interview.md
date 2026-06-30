@@ -168,6 +168,77 @@ Interview complete for v{N}.
 Next step: Run ddo-refine (same context is fine).
 ```
 
+## Structural Patch Syntax (v0.0.3+)
+
+Three new generic operations are available for structural mutations. Always use `target:` as the field name (not `path:`).
+
+### Path Grammar Rules
+
+| Segment type | Syntax | Example |
+|---|---|---|
+| Dict key | `[A-Za-z_][A-Za-z0-9_]*` | `evidence_bank`, `meta` |
+| List index | `[N]` (non-negative digits only) | `[0]`, `[2]` |
+| Dotted chain | `key.key[N].key` | `content.sections[1].body` |
+
+Negative indices (`[-1]`), slices (`[*]`), and hex (`[0x1]`) are rejected. Index brackets must contain only `\d+`.
+
+### append — add element to end of list
+
+```yaml
+patch:
+  op: append
+  target: evidence_bank        # must resolve to an existing list; must NOT end in [N]
+  value:
+    id: "ev_new_001"
+    type: "reference"
+    content: "..."
+    source: "..."
+```
+
+### delete — remove element at index
+
+> **Dangling-ref advisory:** Before issuing `delete evidence_bank[N]`, search `content.sections[*].evidence[]` for the entry's `id`. If found, first issue `set` patches to update or remove each referencing path, then issue the delete as a later patch entry.
+
+```yaml
+patch:
+  op: delete
+  target: evidence_bank[0]     # must end in [N]; no value field allowed
+```
+
+### insert — insert element at position
+
+The `at` field is required and must be a non-negative integer (`isinstance(at, int) and not isinstance(at, bool) and at >= 0`). `at == len(list)` is valid (equivalent to append). `at > len(list)` is a hard error.
+
+```yaml
+patch:
+  op: insert
+  target: content.sections     # must resolve to an existing list; must NOT end in [N]
+  at: 0                        # integer >= 0; True/False/2.0 are rejected
+  value:
+    id: "new_section"
+    title: "New Section"
+    body: "..."
+    claims: []
+    evidence: []
+```
+
+### Sequential-index warning
+
+**Avoid generating multiple index-bearing patches targeting the same parent list in one batch.** An earlier `insert` or `delete` on a list shifts the indices of all later elements — subsequent patches targeting index `N` on the same list in the same batch will operate on a different element than intended. If sequential index-bearing ops on the same list are unavoidable, list them explicitly in correct sequential order and document the expected index values at each step.
+
+### AI candidate value display
+
+The `value` field in an `append`, `delete`, or `insert` patch is a Candidate Output. Display the full `value` dict in the decision prompt **before** writing it to the interview log, so the human can verify the proposed mutation. The Before/After diff in `ddo-refine` is the human authorization gate — the interview prompt is a proposal only.
+
+## Legacy Op Deprecation (v0.0.3)
+
+The following ops are **deprecated** and will be removed in v0.0.4:
+
+- `append_evidence` — use `{op: append, target: "evidence_bank", value: {...}}` instead
+- `append_review_log` — use `{op: append, target: "meta.review_log", value: {...}}` instead
+
+Both deprecated ops remain functional in v0.0.3 for backward compatibility.
+
 ## **Negative Constraints**
 
 - **DO NOT** set `applied` — only `ddo-refine` may do that after a successful

@@ -139,10 +139,21 @@ choose one of five decisions:
 | Decision | Meaning | Patch op |
 |----------|---------|----------|
 | `revise` | Rewrite affected content | `set` (leaf-scalar) |
-| `add_evidence` | Add an `evidence_bank` entry | `append_evidence` |
-| `acknowledge` | Accept finding, log it, no body change | `null` → refine routes to `meta.review_log` |
+| `add_evidence` | Add an `evidence_bank` entry | `append` (v0.0.3+, see below) |
+| `acknowledge` | Accept finding, log it, no body change | `null` → use `append` to `meta.review_log` explicitly (see below) |
 | `dispute` | Disagree, with reason | `null` |
 | `defer` | Revisit in a later pass | `null` |
+
+**v0.0.3 patch ops — required and forbidden fields:**
+
+| Op | Required fields | Forbidden fields | Notes |
+|----|----------------|-----------------|-------|
+| `set` | `target` (leaf-scalar path), `value` | `at` | New value must match existing scalar type |
+| `append` | `target` (list path, no `[N]` suffix), `value` | `at` | Never auto-vivifies a missing list |
+| `delete` | `target` (must end in `[N]`) | `value`, `at` | Triggers `DanglingRefError` if the entry's ID is still referenced |
+| `insert` | `target` (list path, no `[N]` suffix), `at` (non-neg int, not bool), `value` | — | `at > len(list)` is a hard error |
+| `append_evidence` *(deprecated — removed in v0.0.4)* | `value` | — | Migrate: `{op: append, target: "evidence_bank", value: {...}}` |
+| `append_review_log` *(deprecated — removed in v0.0.4)* | `value` | — | Migrate: `{op: append, target: "meta.review_log", value: {...}}` |
 
 A representative resolution set for the findings above:
 
@@ -163,7 +174,8 @@ resolutions:
     decision: add_evidence
     detail: "Attach the GC dataset backing the monomer-residue claim."
     patch:
-      op: append_evidence
+      op: append
+      target: evidence_bank
       value:
         id: gc_monomer_residue
         type: data
@@ -185,6 +197,11 @@ sets `applied` — that's `ddo-refine`'s job after the patch actually lands. It
 halts at `[WAITING FOR USER RESPONSE]` after each batch and never auto-advances.
 See `code_samples/interview_call.py`.
 
+> **Pre-validation:** `validate_interview_log()` (in `ddo/review.py`) enforces
+> per-op field rules — required and forbidden fields per op — before
+> `apply_patches` is called. Malformed logs (e.g. `delete` with a `value` field,
+> or `insert` without `at`) are caught at validation, not during patching.
+
 ### 4. Phase 3 — Refine (snapshot → validate → diff → commit → re-render)
 
 `ddo-refine` is the highest-risk path — the only writer of `document_data.yaml`
@@ -201,7 +218,24 @@ sequence (`code_samples/refine_call.py`):
    deep copy. `set` is **leaf-scalar only**: the path is parsed by a hand-rolled
    parser (`parse_path`, *never* `eval`), missing paths are hard errors,
    auto-vivify is forbidden, and the new value must match the existing scalar's
-   type (str→str ok; str→dict rejected).
+   type (str→str ok; str→dict rejected). Path keys must match
+   `[A-Za-z_][A-Za-z0-9_]*`; indices must be plain non-negative integers —
+   `[-1]`, `[*]`, and hex forms all raise `ValueError`.
+
+   > **DanglingRefError:** `delete evidence_bank[N]` first runs
+   > `_dangling_ref_check()`. If the deleted entry's `id` is still referenced in
+   > any `content.sections[*].evidence[]`, a `DanglingRefError` is raised with a
+   > `.paths` list of every referencing location (e.g.
+   > `content.sections[2].evidence[0]`). The entire batch aborts;
+   > `document_data.yaml` is byte-identical. Resolution: issue `set` patches to
+   > remove the ID from all referencing sections first, then re-run with the
+   > `delete` patch.
+
+   > **Warning — index shift:** When multiple `delete` or `insert` ops target the
+   > same list in a single interview log, indices shift as patches apply in order.
+   > A `delete [2]` followed by another `delete [2]` removes what was originally
+   > index 3. Plan index values to account for prior ops in the same batch, or
+   > split into separate passes.
 4. **Validate twice, in-memory** — `refine_structural_check(patched)` (sections
    stay a list, every body stays a non-empty string) **and** the importable
    `validate(patched)` (the v0.0.1 minimal contract: presence/uniqueness/no
@@ -283,7 +317,11 @@ passes:
 | `persona file 'ddo/personas/X.md' not found` | `meta.persona` typo or missing file | Fix `meta.persona`; the skill **never** silently falls back. |
 | Red Team "sees" the authoring rationale and pulls punches | Ran in the same context as ingest/render | Start a **fresh** conversation; pass only the rendered `.md` path. |
 | `red_team_report_vN.yaml exists but interview_log_vN.yaml is missing` | `detect_incomplete_pass` found a torn pass | Resume `ddo-interview` for `vN`, or remove the partial report to restart. |
-| `set target ... is not a leaf scalar` / `would change type` | Patch tried a structural edit (e.g. `body`→dict, or replacing `content.sections`) | Use a leaf-scalar `set`; record structural reshapes as `acknowledge`/`defer` (deferred to v0.0.3). |
+| `set target ... is not a leaf scalar` / `would change type` | Patch tried a structural edit (e.g. `body`→dict, or replacing `content.sections`) | Use a leaf-scalar `set` for text edits; for structural changes use `append`, `insert`, or `delete` (available in v0.0.3+). |
+| `DanglingRefError: dangling references found: [...]` | `delete evidence_bank[N]` while the entry's `id` is still in a section's `evidence` list | Issue `set` patches to remove the ID from all referencing sections (listed in the error's `.paths`), then retry the `delete`. |
+| `ValueError: invalid bracket expression` / `unexpected character` | Path key contains characters outside `[A-Za-z_][A-Za-z0-9_]*`, or index is not a plain non-negative integer (e.g. `[-1]`, `[*]`) | Use only alphanumeric/underscore keys and non-negative plain integers in paths. |
+| `ReportValidationError: patch.at: required for op 'insert'` | `insert` op is missing the `at` field | Add `at: <non-negative integer>` to the patch. |
+| `ReportValidationError: patch.value: field not allowed for op 'delete'` | `delete` op includes a `value` key | Remove the `value` field from the `delete` patch. |
 | Refine aborts citing a field/ID and nothing is written | `validate()` or `refine_structural_check` rejected the patched dict | Read the named error; `document_data.yaml` is byte-identical — fix the patch in the interview log and retry. |
 | `OverwriteError` on snapshot | `document_data_pre_vN.yaml` already exists | A prior pass left a snapshot; you're likely resuming a torn pass — reconcile `review_history/` first. |
 | `meta.date: must match dotted YYYY.MM.DD` | Used ISO hyphens (`2026-06-29`) | Use dots: `2026.06.29`. |

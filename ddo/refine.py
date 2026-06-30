@@ -33,6 +33,49 @@ from ddo.paths import assert_within_documents
 from ddo.validation import validate
 
 # ---------------------------------------------------------------------------
+# Exception: dangling evidence_bank reference guard
+# ---------------------------------------------------------------------------
+
+
+class DanglingRefError(Exception):
+    """Raised when a delete would leave dangling evidence_bank references."""
+
+    def __init__(self, paths: list[str]) -> None:
+        """Store the dangling path list and forward a human-readable message."""
+        self.paths = paths
+        super().__init__(f"dangling references found: {paths}")
+
+
+# ---------------------------------------------------------------------------
+# Dangling-ref helper (used by delete op)
+# ---------------------------------------------------------------------------
+
+
+def _dangling_ref_check(doc: dict, index: int) -> None:
+    """Raise DanglingRefError if evidence_bank[index].id is referenced in content.sections."""
+    bank = doc.get("evidence_bank", [])
+    if not isinstance(bank, list) or index >= len(bank):
+        return
+    entry = bank[index]
+    if not isinstance(entry, dict):
+        return
+    entry_id = entry.get("id")
+    if entry_id is None:
+        return
+
+    dangling_paths: list[str] = []
+    for si, section in enumerate(doc.get("content", {}).get("sections", [])):
+        if not isinstance(section, dict):
+            continue
+        for ei, ev in enumerate(section.get("evidence", [])):
+            if ev == entry_id:
+                dangling_paths.append(f"content.sections[{si}].evidence[{ei}]")
+
+    if dangling_paths:
+        raise DanglingRefError(paths=dangling_paths)
+
+
+# ---------------------------------------------------------------------------
 # Path helper for pre-refine snapshots
 # ---------------------------------------------------------------------------
 
@@ -310,10 +353,92 @@ def apply_patches(data: dict, log: dict) -> dict:
                 )
             review_log.append(value)
 
+        elif op == "append":
+            if not isinstance(target, str):
+                raise ValueError(
+                    f"apply_patches: resolution[{i}].patch.target must be a string, "
+                    f"got {type(target).__name__}"
+                )
+            segments = parse_path(target)
+            if isinstance(segments[-1], int):
+                raise ValueError(
+                    f"apply_patches: resolution[{i}] append target must not end in "
+                    f"[N] (got {target!r}); use a list path like 'evidence_bank'"
+                )
+            parent, final_key = _resolve_leaf(patched, segments)
+            list_node = parent[final_key]
+            if not isinstance(list_node, list):
+                raise ValueError(
+                    f"apply_patches: resolution[{i}] append target {target!r} is not "
+                    f"a list (got {type(list_node).__name__})"
+                )
+            list_node.append(value)
+
+        elif op == "delete":
+            if not isinstance(target, str):
+                raise ValueError(
+                    f"apply_patches: resolution[{i}].patch.target must be a string, "
+                    f"got {type(target).__name__}"
+                )
+            if value is not None:
+                raise ValueError(
+                    f"apply_patches: resolution[{i}] delete op must not have a 'value' field"
+                )
+            segments = parse_path(target)
+            if not isinstance(segments[-1], int):
+                raise ValueError(
+                    f"apply_patches: resolution[{i}] delete target must end in "
+                    f"[N] (got {target!r}); e.g. 'evidence_bank[0]'"
+                )
+            parent, final_key = _resolve_leaf(patched, segments)
+            if not isinstance(parent, list):
+                raise ValueError(f"apply_patches: resolution[{i}] delete parent is not a list")
+            # Guard dangling refs when deleting from evidence_bank
+            if segments[0] == "evidence_bank" and len(segments) == 2:
+                _dangling_ref_check(patched, final_key)
+            parent.pop(final_key)
+
+        elif op == "insert":
+            if not isinstance(target, str):
+                raise ValueError(
+                    f"apply_patches: resolution[{i}].patch.target must be a string, "
+                    f"got {type(target).__name__}"
+                )
+            segments = parse_path(target)
+            if isinstance(segments[-1], int):
+                raise ValueError(
+                    f"apply_patches: resolution[{i}] insert target must not end in "
+                    f"[N] (got {target!r}); use a list path like 'content.sections'"
+                )
+            at = patch.get("at")
+            if not isinstance(at, int) or isinstance(at, bool):
+                raise ValueError(
+                    f"apply_patches: resolution[{i}] insert 'at' must be a "
+                    f"non-negative integer, not bool/float/None (got {at!r})"
+                )
+            if at < 0:
+                raise ValueError(
+                    f"apply_patches: resolution[{i}] insert 'at' must be >= 0 (got {at})"
+                )
+            parent, final_key = _resolve_leaf(patched, segments)
+            list_node = parent[final_key]
+            if not isinstance(list_node, list):
+                raise ValueError(
+                    f"apply_patches: resolution[{i}] insert target {target!r} is not "
+                    f"a list (got {type(list_node).__name__})"
+                )
+            if at > len(list_node):
+                raise ValueError(
+                    f"apply_patches: resolution[{i}] insert 'at' {at} is out of "
+                    f"range (list length {len(list_node)})"
+                )
+            list_node.insert(at, value)
+
         else:
             raise ValueError(
                 f"apply_patches: resolution[{i}] unknown op {op!r}; "
-                f"supported: set, append_evidence, append_review_log"
+                f"supported: set, append, delete, insert, "
+                f"append_evidence, append_review_log"
             )
 
     return patched

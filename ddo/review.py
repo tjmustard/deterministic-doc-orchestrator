@@ -34,6 +34,16 @@ SEVERITY_ENUM: frozenset[str] = frozenset({"Critical", "Major", "Minor"})
 DECISION_ENUM: frozenset[str] = frozenset(
     {"revise", "add_evidence", "acknowledge", "dispute", "defer"}
 )
+OP_ENUM: frozenset[str] = frozenset(
+    {
+        "set",
+        "append",
+        "delete",
+        "insert",
+        "append_evidence",
+        "append_review_log",
+    }
+)
 
 # Soft finding-count threshold (warn, not error)
 _FINDING_SOFT_CAP = 100
@@ -320,6 +330,53 @@ def validate_interview_log(log: dict) -> None:
             raise ReportValidationError(
                 f"interview_log.resolutions[{i}].patch: required field is missing"
             )
+
+        patch = res["patch"]
+        if patch is not None:
+            op = patch.get("op")
+            at = patch.get("at")
+            has_target = "target" in patch
+            has_at = "at" in patch
+            has_value = "value" in patch
+
+            # Unknown op
+            if op not in OP_ENUM:
+                raise ReportValidationError(
+                    f"interview_log.resolutions[{i}].patch.op: unknown op {op!r}; "
+                    f"must be one of {sorted(OP_ENUM)}"
+                )
+
+            # Structural ops require target (all except hardcoded append_* ops)
+            if op in {"set", "append", "delete", "insert"} and not has_target:
+                raise ReportValidationError(
+                    f"interview_log.resolutions[{i}].patch.target: required for op {op!r}"
+                )
+
+            # insert requires at field
+            if op == "insert" and not has_at:
+                raise ReportValidationError(
+                    f"interview_log.resolutions[{i}].patch.at: required for op 'insert'"
+                )
+
+            # Non-insert ops must not have at field
+            if op != "insert" and has_at:
+                raise ReportValidationError(
+                    f"interview_log.resolutions[{i}].patch.at: field not allowed for op {op!r}"
+                )
+
+            # delete must not have value field
+            if op == "delete" and has_value:
+                raise ReportValidationError(
+                    f"interview_log.resolutions[{i}].patch.value: field not allowed for op 'delete'"
+                )
+
+            # Validate at field type when present
+            if has_at:
+                if not isinstance(at, int) or isinstance(at, bool) or at < 0:
+                    raise ReportValidationError(
+                        f"interview_log.resolutions[{i}].patch.at: must be a "
+                        f"non-negative integer, not bool/float/None (got {at!r})"
+                    )
 
 
 # ---------------------------------------------------------------------------

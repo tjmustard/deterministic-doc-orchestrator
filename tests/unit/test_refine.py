@@ -16,6 +16,8 @@ import yaml
 import ddo.paths as _paths
 from ddo.ingest import OverwriteError
 from ddo.refine import (
+    DanglingRefError,
+    _dangling_ref_check,
     apply_patches,
     commit_refine,
     parse_path,
@@ -70,6 +72,33 @@ def _make_log(resolutions: list[dict], version: int = 1) -> dict:
     return {
         "meta": {"version": version, "timestamp": "2026-06-29T00:00:00Z"},
         "resolutions": resolutions,
+    }
+
+
+def _doc_with_orphan() -> dict:
+    """Document where ev_001 is referenced by sections but ev_unused is not."""
+    return {
+        "meta": {
+            "doc_type": "prd",
+            "title": "T",
+            "version": "1",
+            "date": "2026.01.01",
+            "authors": ["A"],
+            "status": "draft",
+            "persona": "p",
+            "output_formats": ["md"],
+            "template": "prd",
+            "review_log": [],
+        },
+        "evidence_bank": [
+            {"id": "ev_001", "type": "reference", "content": "c", "source": "s"},
+            {"id": "ev_unused", "type": "note", "content": "orphan", "source": "s"},
+        ],
+        "content": {
+            "sections": [
+                {"id": "s1", "title": "T", "body": "B", "claims": [], "evidence": ["ev_001"]}
+            ]
+        },
     }
 
 
@@ -350,7 +379,7 @@ def test_apply_patches_unknown_op_raises():
                 "finding_id": "F-001",
                 "decision": "revise",
                 "detail": "bad op",
-                "patch": {"op": "delete", "target": "meta.title", "value": None},
+                "patch": {"op": "replace", "target": "meta.title", "value": None},
             }
         ]
     )
@@ -588,3 +617,408 @@ def test_snapshot_source_is_byte_identical(doc_dir):
     snap = snapshot_source(data_path, doc_dir, version=1)
 
     assert snap.read_bytes() == data_path.read_bytes()
+
+
+# ---------------------------------------------------------------------------
+# apply_patches — v0.0.3 ops: append, delete, insert
+# ---------------------------------------------------------------------------
+
+
+def test_apply_patches_append_list_succeeds():
+    """Append op on a list target appends the value and returns an extended list."""
+    data = _valid_doc()
+    new_entry = {"id": "ev-2", "type": "fact", "content": "Added.", "source": "test"}
+    original_len = len(data["evidence_bank"])
+    log = _make_log(
+        [
+            {
+                "finding_id": "F-010",
+                "decision": "revise",
+                "detail": "Add entry.",
+                "patch": {"op": "append", "target": "evidence_bank", "value": new_entry},
+            }
+        ]
+    )
+    result = apply_patches(data, log)
+    assert len(result["evidence_bank"]) == original_len + 1
+    assert result["evidence_bank"][-1] == new_entry
+
+
+def test_apply_patches_append_non_list_target_raises():
+    """Append op on a non-list target (e.g. meta.title) raises ValueError."""
+    data = _valid_doc()
+    log = _make_log(
+        [
+            {
+                "finding_id": "F-010",
+                "decision": "revise",
+                "detail": "Bad append.",
+                "patch": {"op": "append", "target": "meta.title", "value": "extra"},
+            }
+        ]
+    )
+    with pytest.raises(ValueError):
+        apply_patches(data, log)
+
+
+def test_apply_patches_append_index_terminated_target_raises():
+    """Append op with an index-terminated target (evidence_bank[0]) raises ValueError."""
+    data = _valid_doc()
+    log = _make_log(
+        [
+            {
+                "finding_id": "F-010",
+                "decision": "revise",
+                "detail": "Bad target.",
+                "patch": {"op": "append", "target": "evidence_bank[0]", "value": {}},
+            }
+        ]
+    )
+    with pytest.raises(ValueError):
+        apply_patches(data, log)
+
+
+def test_apply_patches_delete_non_dangling_succeeds():
+    """Delete op on an unreferenced evidence_bank entry removes it cleanly."""
+    data = _doc_with_orphan()
+    log = _make_log(
+        [
+            {
+                "finding_id": "F-020",
+                "decision": "revise",
+                "detail": "Remove orphan.",
+                "patch": {"op": "delete", "target": "evidence_bank[1]"},
+            }
+        ]
+    )
+    result = apply_patches(data, log)
+    assert len(result["evidence_bank"]) == 1
+    assert all(e["id"] != "ev_unused" for e in result["evidence_bank"])
+
+
+def test_apply_patches_delete_dangling_raises():
+    """Delete op on a referenced evidence_bank entry raises DanglingRefError."""
+    data = _doc_with_orphan()
+    original = copy.deepcopy(data)
+    log = _make_log(
+        [
+            {
+                "finding_id": "F-020",
+                "decision": "revise",
+                "detail": "Delete referenced entry.",
+                "patch": {"op": "delete", "target": "evidence_bank[0]"},
+            }
+        ]
+    )
+    with pytest.raises(DanglingRefError):
+        apply_patches(data, log)
+    assert data == original
+
+
+def test_apply_patches_delete_dangling_ref_error_has_paths():
+    """DanglingRefError carries a non-empty .paths list of string path descriptors."""
+    data = _doc_with_orphan()
+    log = _make_log(
+        [
+            {
+                "finding_id": "F-020",
+                "decision": "revise",
+                "detail": "Delete referenced entry.",
+                "patch": {"op": "delete", "target": "evidence_bank[0]"},
+            }
+        ]
+    )
+    with pytest.raises(DanglingRefError) as exc_info:
+        apply_patches(data, log)
+    e = exc_info.value
+    assert isinstance(e.paths, list)
+    assert len(e.paths) >= 1
+    assert all(isinstance(p, str) for p in e.paths)
+
+
+def test_apply_patches_delete_oob_raises():
+    """Delete op with an out-of-range index raises ValueError."""
+    data = _valid_doc()
+    log = _make_log(
+        [
+            {
+                "finding_id": "F-020",
+                "decision": "revise",
+                "detail": "OOB delete.",
+                "patch": {"op": "delete", "target": "evidence_bank[99]"},
+            }
+        ]
+    )
+    with pytest.raises(ValueError):
+        apply_patches(data, log)
+
+
+def test_apply_patches_insert_at_zero_succeeds():
+    """Insert op at position 0 prepends the value; original index-0 shifts to index 1."""
+    data = _valid_doc()
+    new_section = {
+        "id": "intro2",
+        "title": "Intro2",
+        "body": "New intro.",
+        "claims": [],
+        "evidence": [],
+    }
+    original_first = data["content"]["sections"][0]
+    log = _make_log(
+        [
+            {
+                "finding_id": "F-030",
+                "decision": "revise",
+                "detail": "Prepend section.",
+                "patch": {
+                    "op": "insert",
+                    "target": "content.sections",
+                    "at": 0,
+                    "value": new_section,
+                },
+            }
+        ]
+    )
+    result = apply_patches(data, log)
+    assert result["content"]["sections"][0] == new_section
+    assert result["content"]["sections"][1] == original_first
+
+
+def test_apply_patches_insert_at_len_equals_append():
+    """Insert op at position == len(list) appends the entry to the end."""
+    data = _valid_doc()
+    new_entry = {"id": "ev-end", "type": "fact", "content": "End entry.", "source": "test"}
+    at = len(data["evidence_bank"])  # == 1 for _valid_doc
+    log = _make_log(
+        [
+            {
+                "finding_id": "F-030",
+                "decision": "revise",
+                "detail": "Insert at end.",
+                "patch": {
+                    "op": "insert",
+                    "target": "evidence_bank",
+                    "at": at,
+                    "value": new_entry,
+                },
+            }
+        ]
+    )
+    result = apply_patches(data, log)
+    assert result["evidence_bank"][-1] == new_entry
+    assert len(result["evidence_bank"]) == at + 1
+
+
+def test_apply_patches_insert_at_oob_raises():
+    """Insert op with at > len(list) raises ValueError."""
+    data = _valid_doc()
+    at = len(data["evidence_bank"]) + 1  # one past the valid end
+    log = _make_log(
+        [
+            {
+                "finding_id": "F-030",
+                "decision": "revise",
+                "detail": "OOB insert.",
+                "patch": {
+                    "op": "insert",
+                    "target": "evidence_bank",
+                    "at": at,
+                    "value": {"id": "x", "type": "fact", "content": "x", "source": "x"},
+                },
+            }
+        ]
+    )
+    with pytest.raises(ValueError):
+        apply_patches(data, log)
+
+
+def test_apply_patches_insert_at_negative_raises():
+    """Insert op with at < 0 raises ValueError."""
+    data = _valid_doc()
+    log = _make_log(
+        [
+            {
+                "finding_id": "F-030",
+                "decision": "revise",
+                "detail": "Negative at.",
+                "patch": {
+                    "op": "insert",
+                    "target": "evidence_bank",
+                    "at": -1,
+                    "value": {"id": "x", "type": "fact", "content": "x", "source": "x"},
+                },
+            }
+        ]
+    )
+    with pytest.raises(ValueError):
+        apply_patches(data, log)
+
+
+def test_apply_patches_insert_at_bool_raises():
+    """Insert op with at=True raises ValueError (bool is a subclass of int; must be rejected)."""
+    data = _valid_doc()
+    log = _make_log(
+        [
+            {
+                "finding_id": "F-030",
+                "decision": "revise",
+                "detail": "Bool at.",
+                "patch": {
+                    "op": "insert",
+                    "target": "evidence_bank",
+                    "at": True,
+                    "value": {"id": "x", "type": "fact", "content": "x", "source": "x"},
+                },
+            }
+        ]
+    )
+    with pytest.raises(ValueError):
+        apply_patches(data, log)
+
+
+def test_apply_patches_insert_at_float_raises():
+    """Insert op with at=2.0 raises ValueError (float is not an int)."""
+    data = _valid_doc()
+    log = _make_log(
+        [
+            {
+                "finding_id": "F-030",
+                "decision": "revise",
+                "detail": "Float at.",
+                "patch": {
+                    "op": "insert",
+                    "target": "evidence_bank",
+                    "at": 2.0,
+                    "value": {"id": "x", "type": "fact", "content": "x", "source": "x"},
+                },
+            }
+        ]
+    )
+    with pytest.raises(ValueError):
+        apply_patches(data, log)
+
+
+def test_apply_patches_atomicity_on_mid_batch_exception():
+    """A DanglingRefError raised mid-batch leaves the original input dict unchanged."""
+    data = _doc_with_orphan()
+    original = copy.deepcopy(data)
+    log = _make_log(
+        [
+            {
+                "finding_id": "F-040",
+                "decision": "revise",
+                "detail": "Valid set first.",
+                "patch": {
+                    "op": "set",
+                    "target": "content.sections[0].title",
+                    "value": "Updated",
+                },
+            },
+            {
+                "finding_id": "F-041",
+                "decision": "revise",
+                "detail": "Then delete a referenced evidence entry.",
+                "patch": {"op": "delete", "target": "evidence_bank[0]"},
+            },
+        ]
+    )
+    with pytest.raises(DanglingRefError):
+        apply_patches(data, log)
+    assert data == original
+
+
+def test_apply_patches_sequential_index_shift_documented():
+    """Sequential-execution index shift: insert at 0 shifts remaining elements.
+
+    Start: [ev_a (idx 0), ev_b (idx 1)].
+    After insert new_entry at 0: [new_entry (idx 0), ev_a (idx 1), ev_b (idx 2)].
+    delete evidence_bank[2] removes ev_b (the original index-1 entry).
+    Survivors: [new_entry, ev_a].
+    """
+    # Documents sequential-execution index shift: insert at 0 shifts remaining elements
+    ev_a = {"id": "ev_a", "type": "reference", "content": "c", "source": "s"}
+    ev_b = {"id": "ev_b", "type": "note", "content": "extra", "source": "s"}
+    new_entry = {"id": "ev_new", "type": "fact", "content": "inserted", "source": "test"}
+    data = {
+        "meta": {
+            "doc_type": "prd",
+            "title": "T",
+            "version": "1",
+            "date": "2026.01.01",
+            "template": "prd",
+            "output_formats": ["md"],
+        },
+        "evidence_bank": [dict(ev_a), dict(ev_b)],
+        "content": {
+            "sections": [
+                {"id": "s1", "title": "T", "body": "B", "claims": [], "evidence": ["ev_a"]}
+            ]
+        },
+    }
+    log = _make_log(
+        [
+            {
+                "finding_id": "F-050",
+                "decision": "revise",
+                "detail": "Insert new entry at front.",
+                "patch": {
+                    "op": "insert",
+                    "target": "evidence_bank",
+                    "at": 0,
+                    "value": new_entry,
+                },
+            },
+            {
+                "finding_id": "F-051",
+                "decision": "revise",
+                "detail": "Delete original index-1 (now at index 2 after insert).",
+                "patch": {"op": "delete", "target": "evidence_bank[2]"},
+            },
+        ]
+    )
+    result = apply_patches(data, log)
+    assert len(result["evidence_bank"]) == 2
+    assert result["evidence_bank"][0] == new_entry
+    assert result["evidence_bank"][1]["id"] == "ev_a"
+
+
+def test_dangling_ref_check_set_before_delete_caught():
+    """Set that adds a reference before a delete causes the delete to raise DanglingRefError."""
+    data = _doc_with_orphan()
+    # sections[0].evidence[0] == "ev_001"; ev_unused is at bank[1] (unreferenced).
+    # After the set patch, sections[0].evidence[0] becomes "ev_unused" → now referenced.
+    # The subsequent delete of evidence_bank[1] (ev_unused) must then raise DanglingRefError.
+    log = _make_log(
+        [
+            {
+                "finding_id": "F-060",
+                "decision": "revise",
+                "detail": "Redirect evidence pointer to ev_unused.",
+                "patch": {
+                    "op": "set",
+                    "target": "content.sections[0].evidence[0]",
+                    "value": "ev_unused",
+                },
+            },
+            {
+                "finding_id": "F-061",
+                "decision": "revise",
+                "detail": "Delete ev_unused (now referenced after above set).",
+                "patch": {"op": "delete", "target": "evidence_bank[1]"},
+            },
+        ]
+    )
+    with pytest.raises(DanglingRefError):
+        apply_patches(data, log)
+
+
+def test_dangling_ref_check_malformed_doc_no_keyerror():
+    """_dangling_ref_check on a doc missing 'content' must not raise KeyError."""
+    malformed = {"evidence_bank": [{"id": "ev_x", "type": "fact", "content": "c", "source": "s"}]}
+    # Must return cleanly or raise DanglingRefError — but never KeyError.
+    try:
+        _dangling_ref_check(malformed, 0)
+    except DanglingRefError:
+        pass  # acceptable outcome
+    except KeyError as exc:
+        pytest.fail(f"_dangling_ref_check raised KeyError: {exc}")

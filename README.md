@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-    <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/releases/latest"><img src="https://img.shields.io/badge/release-v0.0.2-blue" alt="Latest Release"/></a>
+    <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/releases/latest"><img src="https://img.shields.io/badge/release-v0.0.3-blue" alt="Latest Release"/></a>
     <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/stargazers"><img src="https://img.shields.io/github/stars/tjmustard/deterministic-doc-orchestrator?style=social" alt="GitHub stars"/></a>
     <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/blob/main/LICENSE"><img src="https://img.shields.io/github/license/tjmustard/deterministic-doc-orchestrator" alt="License"/></a>
 </p>
@@ -28,6 +28,7 @@
 - [❓ Troubleshooting Overview](#-troubleshooting-overview)
 - [🗺️ Roadmap](#️-roadmap)
 - [🤝 Support](#-support)
+- [🙏 Credits](#-credits)
 - [📄 License](#-license)
 
 ## 🤔 What is DDO?
@@ -149,10 +150,11 @@ The DDO pipeline is strictly sequential. Each phase produces a verifiable artifa
 
 ### Phase 5: Refine (`ddo-refine`)
 1. Torn-pass check; take a byte-for-byte snapshot of `document_data.yaml` (`document_data_pre_vN.yaml`) before any mutation.
-2. Apply patches from `interview_log_vN.yaml` purely in memory — constrained `set` (leaf-scalar only, no auto-vivify, no type change), `append_evidence`, or `append_review_log`.
-3. Run `refine_structural_check` + `validate` in-memory; present a unified diff HITL gate before committing.
-4. Commit atomically; re-render via `ddo-render`.
-5. On successful render: mark `applied` flag on landed findings; append a pass record to `history.yaml` + `history.md`.
+2. Apply patches from `interview_log_vN.yaml` purely in memory — supported ops: `set` (leaf-scalar only, no auto-vivify, no type change), `append` (list append), `delete` (list remove by index, blocked if dangling ref detected), `insert` (list insert at position `at`), `append_evidence`, `append_review_log`.
+3. `DanglingRefError`: if a `delete` on `evidence_bank[N]` would leave `content.sections[*].evidence[]` references pointing to the deleted entry, the operation is refused and the `.paths` list is surfaced to the human. The interview agent must resolve all dangling refs before resubmitting the delete.
+4. Run `refine_structural_check` + `validate` in-memory; present a unified diff HITL gate (human authorization gate) before committing.
+5. Commit atomically; re-render via `ddo-render`.
+6. On successful render: mark `applied` flag on landed findings; append a pass record to `history.yaml` + `history.md`.
 
 ## 📄 Schema Contract
 
@@ -228,16 +230,36 @@ See `ddo/schemas/prd.yaml` and `ddo/schemas/scientific_report.yaml` for the full
   - [x] Product Critic
   - [x] Scientific Reviewer (actively exercised in v0.0.2 adversarial loop)
 - [x] Test Suite
-  - [x] 159 tests passing (unit + integration)
+  - [x] 188 tests passing (unit + integration)
   - [x] Golden regression baselines with human sign-off guard
 - [x] Tutorials
   - [x] PRD YAML workflow tutorial (`tutorials/ddo-v001-prd-workflow/`)
   - [x] Adversarial loop tutorial (`tutorials/ddo-adversarial-loop-v0.0.2/`)
-- [ ] Scientific report workflow tutorial (planned v0.0.3)
+- [x] Structural Patch DSL (v0.0.3)
+  - [x] `append`, `delete`, `insert` ops in `apply_patches` (`ddo/refine.py`)
+  - [x] `DanglingRefError` with dangling-ref guard before `delete` on `evidence_bank`
+  - [x] NC-13 path whitelist in `parse_path` (key segment + index bracket validation)
+  - [x] `validate_interview_log` extended with `OP_ENUM` and per-op field rules (`ddo/review.py`)
+  - [x] `ddo-interview` skill updated with structural patch syntax, deprecation notices, sequential-index warning
+  - [x] `ddo-refine` skill updated with `DanglingRefError` handling and human authorization gate framing
+- [ ] Scientific report workflow tutorial
 
 ## 🤝 Support
 
 For support, bug reports, or feature requests, please open a GitHub issue.
+
+## 🙏 Credits
+
+DDO is derived from and built upon **[Aegis](https://github.com/tjmustard/Aegis)**, a personal
+document-processing framework authored by Thomas Mustard. Aegis is the upstream predecessor that
+established the core architectural concepts this codebase implements: YAML as source of truth,
+deterministic rendering pipelines, and an AI-augmented editorial loop with mandatory
+human-in-the-loop gates.
+
+**DDO is a personal project.** All architectural patterns and conceptual foundations originate
+in Aegis, which was authored prior to this work.
+
+> The Aegis repository is currently private and will be made public in an upcoming release.
 
 ## 📄 License
 

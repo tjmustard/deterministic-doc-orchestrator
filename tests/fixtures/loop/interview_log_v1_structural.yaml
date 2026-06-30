@@ -1,0 +1,64 @@
+meta:
+  version: 1
+  timestamp: '2026-06-30T00:00:00Z'
+resolutions:
+  # Set op: clear the title sentinel (required for M5.1 sentinel-absence assertion)
+  - finding_id: GAP-title
+    decision: revise
+    detail: >-
+      Replace the document title sentinel with the formal product name.
+    patch:
+      op: set
+      target: meta.title
+      value: "DDO Pipeline Documentation Module (Structural Patch Test)"
+
+  # Structural op 1 — append: add a new evidence entry
+  - finding_id: STRUCT-001
+    decision: add_evidence
+    detail: >-
+      Append a new evidence entry documenting the v0.0.3 structural patch DSL
+      expansion.
+    patch:
+      op: append
+      target: evidence_bank
+      value:
+        id: "ev_v003_spec"
+        type: "reference"
+        content: >-
+          DDO v0.0.3 SuperPRD documenting the structural patch DSL expansion:
+          append, delete, and insert operations.
+        source: "spec/compiled/SuperPRD_v0.0.3_StructuralPatchDSL.md"
+
+  # Structural op 2 — delete: remove the unreferenced orphan entry.
+  # After the append above, evidence_bank indices are:
+  #   [0] ev_ddo_spec            (referenced — do NOT delete)
+  #   [1] ev_test_results        (referenced — do NOT delete)
+  #   [2] ev_orphan_placeholder  (unreferenced — the delete target)
+  #   [3] ev_v003_spec           (just appended)
+  - finding_id: STRUCT-002
+    decision: revise
+    detail: >-
+      Remove the unreferenced orphan placeholder evidence entry.
+      ev_orphan_placeholder at evidence_bank[2] is not cited by any section.
+    patch:
+      op: delete
+      target: evidence_bank[2]
+
+  # Structural op 3 — insert: add executive summary section at index 0
+  - finding_id: STRUCT-003
+    decision: revise
+    detail: >-
+      Insert an executive summary section at the start of content.sections.
+    patch:
+      op: insert
+      target: content.sections
+      at: 0
+      value:
+        id: "executive_summary"
+        title: "0. Executive Summary"
+        body: >-
+          The DDO pipeline provides deterministic document generation from
+          version-controlled YAML sources with a zero-hallucination constraint
+          enforced at every phase.
+        claims: []
+        evidence: []

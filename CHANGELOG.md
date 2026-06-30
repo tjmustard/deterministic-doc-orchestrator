@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.3] - 2026-06-30
+
+### Added
+- **`DanglingRefError(Exception)`** in `ddo/refine.py`: Carries a `paths: list[str]` attribute — the authoritative structured output for `ddo-refine` to surface when a `delete` op targeting `evidence_bank` would leave references dangling in `content.sections[*].evidence[]`.
+- **`_dangling_ref_check(doc, index)`** in `ddo/refine.py`: Called before every `delete` on `evidence_bank[N]`; scans `content.sections[*].evidence[]` for the entry's `id`; raises `DanglingRefError` if found. Uses `dict.get()` throughout — never raises `KeyError` on malformed input.
+- **`append` op** in `apply_patches` (`ddo/refine.py`): Appends a value to a list target. Rejects `[N]`-terminated paths and non-list targets; never auto-vivifies a missing list.
+- **`delete` op** in `apply_patches` (`ddo/refine.py`): Removes `list[index]`. Calls `_dangling_ref_check` when targeting `evidence_bank`; rejects a `value` field on the patch dict; operation is blocked if `DanglingRefError` raises.
+- **`insert` op** in `apply_patches` (`ddo/refine.py`): Inserts a value into a list at position `at`. Validates `isinstance(at, int) and not isinstance(at, bool) and at >= 0`; rejects `at > len(list)`; rejects `at: True`, `at: -1`, and `at: 2.0`.
+- **NC-13 path whitelist** in `parse_path` (`ddo/refine.py`): Key segments must match `[a-zA-Z_][a-zA-Z0-9_]*`; index brackets must match `\d+` only — `[-1]`, `[*]`, `[0x1f]` all raise `ValueError`.
+- **Structural patch syntax** in `ddo/skills/ddo-interview.md`: Full `append`/`delete`/`insert` YAML examples with `target:` field name (not `path:`); sequential-index warning; dangling-ref advisory before the `delete` example; deprecation notice for `append_evidence` and `append_review_log` (deprecated; removed in v0.0.4).
+- **`DanglingRefError` handling** in `ddo/skills/ddo-refine.md`: Displays `.paths` list with format `"Refused: evidence_bank[N] is still referenced at: [...]"`; instructs interview agent to issue `set` patches first; multi-line diff note for structural ops; human authorization gate framing (interview prompt = proposal; Before/After diff = human approval).
+- **17 new unit tests** in `tests/unit/test_refine.py`: Cover all three new ops (append/delete/insert), atomicity on mid-batch exception, sequential-index shift documentation, and `_dangling_ref_check` edge cases (set-before-delete, malformed doc).
+- **11 new unit tests** in `tests/unit/test_review.py`: Cover new `OP_ENUM` acceptance cases and all six invalid per-op field combinations (insert without `at`, delete with `value`, set/append/delete with `at`, insert with negative or bool `at`, unknown op).
+- **`tests/fixtures/loop/interview_log_v1_structural.yaml`**: Human-approved structural fixture — exercises `append` (evidence_bank), `delete` (unreferenced evidence entry at `evidence_bank[2]`), and `insert` (content.sections at: 0) through the full refine pipeline.
+
+### Changed
+- **`validate_interview_log`** (`ddo/review.py`): Added `OP_ENUM: frozenset[str]` constant with all six valid op strings (`set`, `append`, `delete`, `insert`, `append_evidence`, `append_review_log`). Enforces per-op field rules: `insert` requires `at`; `delete` forbids `value`; `set`/`append`/`delete`/`insert` require `target`; `at` type validated as `isinstance(at, int) and not isinstance(at, bool) and at >= 0`. Unknown ops raise `ReportValidationError`.
+- **`test_loop_pass`** (`tests/integration/test_loop.py`): Refactored from two separate test functions into a single `@pytest.mark.parametrize` test with `id="set-based"` and `id="structural"` cases; both cases use `shutil.copy` for per-case fixture isolation.
+- **`test_apply_patches_unknown_op_raises`** (`tests/unit/test_refine.py`): Op string changed from `"delete"` to `"replace"` — `"delete"` is now a valid op.
+- **`pyproject.toml`**: Version bumped `0.0.2` → `0.0.3`.
+- **Test suite**: Expanded from 159 to 188 tests.
+
+### Documentation
+- **`tutorials/ddo-v001-prd-workflow/tutorial.md`**: Updated stale test count (`78` → `188`); rewrote the "Related" section entry for the adversarial loop — replaced "v0.0.2 roadmap" future-tense language with present-tense shipped phrasing and a direct link to `tutorials/ddo-adversarial-loop-v0.0.2/tutorial.md`.
+- **`tutorials/ddo-adversarial-loop-v0.0.2/tutorial.md`**: Comprehensive v0.0.3 accuracy update — rewrote Phase 2 decision table to mark `append_evidence` and `append_review_log` as deprecated with migration forms; added full `append`/`delete`/`insert` op table with required/forbidden fields; added `validate_interview_log()` pre-validation note; added `DanglingRefError` documentation with resolution pattern and `.paths` format; added sequential-index shift warning in Phase 3; added NC-13 path-whitelist constraint to `parse_path` prose; fixed stale "deferred to v0.0.3" troubleshooting row; added four new troubleshooting rows for `DanglingRefError`, `ValueError` (NC-13), and `ReportValidationError` cases.
+- **`tutorials/ddo-adversarial-loop-v0.0.2/output_files/interview_log_v1.yaml`**: Updated F-004 patch block from deprecated `op: append_evidence` to `{op: append, target: "evidence_bank", value: {...}}`.
+- **Tutorial audit files** (`tutorials/*/audit_2026-06-30.md`): Structured fix prompts generated via `/hyper-tutorial-audit` documenting staleness findings and fix instructions for each tutorial.
+- **`spec/process/process_20260630_152059_session.md`**: Retrospective process document for the tutorial audit session.
+
 ## [0.0.2] - 2026-06-29
 
 ### Added

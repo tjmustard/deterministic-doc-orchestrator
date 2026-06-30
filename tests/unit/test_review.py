@@ -233,6 +233,144 @@ def test_validate_interview_log_missing_patch_key_raises():
 
 
 # ---------------------------------------------------------------------------
+# validate_interview_log — op enum and per-op field rules (v0.0.3)
+# ---------------------------------------------------------------------------
+
+
+def test_validate_interview_log_append_op_accepted():
+    """A patch with op='append', target, and value is structurally valid."""
+    log = _valid_log()
+    log["resolutions"][0]["patch"] = {
+        "op": "append",
+        "target": "evidence_bank",
+        "value": {"id": "ev_new", "type": "note", "content": "c", "source": "s"},
+    }
+    validate_interview_log(log)  # must not raise
+
+
+def test_validate_interview_log_delete_op_accepted():
+    """A patch with op='delete' and target (no value) is structurally valid."""
+    log = _valid_log()
+    log["resolutions"][0]["patch"] = {
+        "op": "delete",
+        "target": "evidence_bank[0]",
+    }
+    validate_interview_log(log)  # must not raise
+
+
+def test_validate_interview_log_insert_op_with_at_accepted():
+    """A patch with op='insert', target, at, and value is structurally valid."""
+    log = _valid_log()
+    log["resolutions"][0]["patch"] = {
+        "op": "insert",
+        "target": "content.sections",
+        "at": 2,
+        "value": {"id": "ev_new", "type": "note", "content": "c", "source": "s"},
+    }
+    validate_interview_log(log)  # must not raise
+
+
+def test_validate_interview_log_insert_without_at_raises():
+    """A patch with op='insert' missing the 'at' field raises ReportValidationError."""
+    log = _valid_log()
+    log["resolutions"][0]["patch"] = {
+        "op": "insert",
+        "target": "content.sections",
+        "value": {"id": "ev_new", "type": "note", "content": "c", "source": "s"},
+    }
+    with pytest.raises(ReportValidationError, match="at"):
+        validate_interview_log(log)
+
+
+def test_validate_interview_log_delete_with_value_raises():
+    """A patch with op='delete' that includes a 'value' field raises ReportValidationError."""
+    log = _valid_log()
+    log["resolutions"][0]["patch"] = {
+        "op": "delete",
+        "target": "evidence_bank[0]",
+        "value": "something",
+    }
+    with pytest.raises(ReportValidationError, match="value"):
+        validate_interview_log(log)
+
+
+def test_validate_interview_log_set_with_at_raises():
+    """A patch with op='set' that includes an 'at' field raises ReportValidationError."""
+    log = _valid_log()
+    log["resolutions"][0]["patch"] = {
+        "op": "set",
+        "target": "meta.title",
+        "value": "new",
+        "at": 0,
+    }
+    with pytest.raises(ReportValidationError, match="at"):
+        validate_interview_log(log)
+
+
+def test_validate_interview_log_append_with_at_raises():
+    """A patch with op='append' that includes an 'at' field raises ReportValidationError."""
+    log = _valid_log()
+    log["resolutions"][0]["patch"] = {
+        "op": "append",
+        "target": "evidence_bank",
+        "value": {"id": "ev_new", "type": "note", "content": "c", "source": "s"},
+        "at": 1,
+    }
+    with pytest.raises(ReportValidationError, match="at"):
+        validate_interview_log(log)
+
+
+def test_validate_interview_log_delete_with_at_raises():
+    """A patch with op='delete' that includes an 'at' field raises ReportValidationError."""
+    log = _valid_log()
+    log["resolutions"][0]["patch"] = {
+        "op": "delete",
+        "target": "evidence_bank[0]",
+        "at": 0,
+    }
+    with pytest.raises(ReportValidationError, match="at"):
+        validate_interview_log(log)
+
+
+def test_validate_interview_log_insert_negative_at_raises():
+    """A patch with op='insert' and a negative 'at' value raises ReportValidationError."""
+    log = _valid_log()
+    log["resolutions"][0]["patch"] = {
+        "op": "insert",
+        "target": "content.sections",
+        "at": -1,
+        "value": {"id": "ev_new", "type": "note", "content": "c", "source": "s"},
+    }
+    with pytest.raises(ReportValidationError, match="at"):
+        validate_interview_log(log)
+
+
+def test_validate_interview_log_insert_bool_at_raises():
+    """A patch with op='insert' and a bool 'at' value raises ReportValidationError."""
+    log = _valid_log()
+    log["resolutions"][0]["patch"] = {
+        "op": "insert",
+        "target": "content.sections",
+        "at": True,
+        "value": {"id": "ev_new", "type": "note", "content": "c", "source": "s"},
+    }
+    with pytest.raises(ReportValidationError, match="at"):
+        validate_interview_log(log)
+
+
+def test_validate_interview_log_unknown_op_raises():
+    """A patch with an op not in OP_ENUM raises ReportValidationError."""
+    log = _valid_log()
+    log["resolutions"][0]["patch"] = {
+        "op": "replace",
+        "target": "meta.title",
+        "value": "x",
+    }
+    with pytest.raises(ReportValidationError, match="op"):
+        validate_interview_log(log)
+
+
+# ---------------------------------------------------------------------------
 # _vN derivation — report_version / current_version (M2)
 # ---------------------------------------------------------------------------
 

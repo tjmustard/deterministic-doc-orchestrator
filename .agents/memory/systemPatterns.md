@@ -58,6 +58,16 @@ The hypergraph (`spec/compiled/architecture.yml`) has 24 nodes: 1 System, 8 Modu
 - **Audit reconcile gated on render success**: `mark_findings(..., field="applied")` and `append_history` are called only after `ddo-render` returns success. A failed render leaves `document_data.yaml` committed but findings unmarked and history unappended — the torn-pass detector will catch this on next entry.
 - **`review_history/` path builder in `ddo.review`**: All artifact paths inside `review_history/` are built and containment-asserted inside `ddo.review`. Skills and callers must never construct these paths manually.
 
+### v0.0.3 Patterns (Structural Patch DSL)
+
+- **`DanglingRefError` guard before `delete` on `evidence_bank`**: `_dangling_ref_check(doc, index)` is called inside `apply_patches` before `list.pop` whenever the target path is `evidence_bank[N]`. If the entry's `id` appears in any `content.sections[*].evidence[]`, the operation is refused. The `skill_refine` surfaces the `.paths` attribute (a list of referencing paths) to the human; the `skill_interview` must issue `set` patches to clear refs before resubmitting the delete.
+- **Structural ops operate on the deep copy (atomicity)**: `append`, `delete`, and `insert` all mutate `patched` (the `copy.deepcopy` taken at `apply_patches` entry). A mid-batch exception discards `patched`; the original `data` dict is unchanged. Callers can rely on all-or-nothing semantics.
+- **`at` field rejection matrix**: `isinstance(at, int) and not isinstance(at, bool) and at >= 0` — bool is an int subclass in Python so `True`/`False` must be explicitly rejected; floats fail the first check; negative ints fail the third. Bounds check (`at > len(list)`) is in `apply_patches`, not in `validate_interview_log`.
+- **NC-13 character whitelist in `parse_path`**: Key segments match `[a-zA-Z_][a-zA-Z0-9_]*`; index brackets match `\d+` only. `[-1]`, `[*]`, `[0x1f]`, `[:]` all raise `ValueError`. This is enforced at parse time so no illegal path ever reaches list navigation logic.
+- **Sequential-index shift is documented, not automated**: A batch `[insert evidence_bank at: 0, delete evidence_bank[2]]` shifts all indices after the insert. This is expected Python `list.insert` semantics. `ddo-interview` warns users to account for shifts explicitly when building multi-index batches; it does not auto-correct indices.
+- **`append_evidence` and `append_review_log` are deprecated (v0.0.3)**: These hardcoded ops are replaced by the generic `{op: "append", target: "evidence_bank"/"meta.review_log", value: {...}}` form. Both remain in `OP_ENUM` and `apply_patches` for v0.0.3 backwards compatibility; scheduled for removal in v0.0.4.
+- **`validate_interview_log` validates op structure, not path syntax**: `OP_ENUM` membership, per-op required/forbidden fields, and `at` type are checked here. Target path syntax (NC-13, `[N]`-terminated detection) belongs in `parse_path`; value contents belong in the post-mutation `validate()` call.
+
 ## Conventions
 
 - **Date format in YAML**: dotted — `"2026.06.29"` (not ISO dashes `"2026-06-26"`)

@@ -2,10 +2,11 @@
 
 This test is **human-gated**: it skips unless the ``DDO_FIXTURE_SIGNOFF=1``
 environment variable is set by a human reviewer.  The fixtures it requires
-(``tests/fixtures/loop/document_data_with_gap.yaml`` and
-``tests/fixtures/loop/interview_log_v1.yaml``) must be authored and promoted
-by a human under the Candidate Artifact protocol — agents must never write
-them (see ``scripts/fixture_signoff_guard.py``).
+(``tests/fixtures/loop/document_data_with_gap.yaml``,
+``tests/fixtures/loop/interview_log_v1.yaml``, and
+``tests/fixtures/loop/interview_log_v1_structural.yaml``) must be authored and
+promoted by a human under the Candidate Artifact protocol — agents must never
+write them (see ``scripts/fixture_signoff_guard.py``).
 
 **What this test asserts (M5 observable):**
 
@@ -26,6 +27,7 @@ them (see ``scripts/fixture_signoff_guard.py``).
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -48,66 +50,62 @@ _SIGNOFF_REASON = (
 )
 
 
-def _fixtures_exist() -> bool:
-    return (_FIXTURES_LOOP / "document_data_with_gap.yaml").is_file() and (
-        _FIXTURES_LOOP / "interview_log_v1.yaml"
-    ).is_file()
-
-
 # ---------------------------------------------------------------------------
-# The gap-closing test (M5)
+# The gap-closing test (M5) — parametrized over set-based and structural cases
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skipif(
-    not (os.environ.get(_SIGNOFF_VAR) == "1" and _fixtures_exist()),
-    reason=_SIGNOFF_REASON,
+@pytest.mark.parametrize(
+    "log_filename",
+    [
+        pytest.param("interview_log_v1.yaml", id="set-based"),
+        pytest.param("interview_log_v1_structural.yaml", id="structural"),
+    ],
 )
-def test_gap_closing_pass(tmp_path, repo_root):
-    """M5: Gap-closing pass asserts sentinel-absence and 3-format render.
+def test_loop_pass(tmp_path, repo_root, log_filename):
+    """M5: gap-closing pass for both set-based and structural op fixtures.
 
-    Drives a seeded-gap document_data.yaml + signed-off interview_log through
-    refine and asserts sentinel-absence + validate()-clean YAML + render ok for
-    all three formats. The fixture files are human-authored and human-promoted;
-    this test only confirms the M5 observable.
+    Each parametrized case receives its own pytest tmp_path, so mutations are
+    fully isolated. The base document is always copied via shutil.copy so the
+    on-disk fixture file is never modified.
     """
-    # --- Load signed-off fixtures -------------------------------------------
-    gap_data_path = _FIXTURES_LOOP / "document_data_with_gap.yaml"
-    log_path = _FIXTURES_LOOP / "interview_log_v1.yaml"
+    signoff = os.environ.get(_SIGNOFF_VAR) == "1"
+    base_ok = (_FIXTURES_LOOP / "document_data_with_gap.yaml").is_file()
+    log_ok = (_FIXTURES_LOOP / log_filename).is_file()
+    if not (signoff and base_ok and log_ok):
+        pytest.skip(_SIGNOFF_REASON)
 
-    data = yaml.safe_load(gap_data_path.read_text(encoding="utf-8"))
+    gap_data_src = _FIXTURES_LOOP / "document_data_with_gap.yaml"
+    log_path = _FIXTURES_LOOP / log_filename
     log = yaml.safe_load(log_path.read_text(encoding="utf-8"))
 
-    # --- Set up a temporary doc_dir that is visible to ddo.paths ------------
-    # The test writes output into tmp_path/Documents/loop_test/
     import ddo.paths as _paths  # noqa: PLC0415
 
     doc_dir = tmp_path / "Documents" / "loop_test"
     doc_dir.mkdir(parents=True)
 
-    # Monkeypatch _REPO_ROOT so assert_within_documents accepts our tmp dir.
     orig_repo_root = _paths._REPO_ROOT
     _paths._REPO_ROOT = tmp_path
     try:
+        # Independent copy — the on-disk fixture is never mutated
         data_path = doc_dir / "document_data.yaml"
-        data_path.write_text(
-            yaml.safe_dump(data, sort_keys=False, allow_unicode=True), encoding="utf-8"
-        )
+        shutil.copy(gap_data_src, data_path)
+        data = yaml.safe_load(data_path.read_text(encoding="utf-8"))
 
-        # --- Snapshot before mutation (RT#2 / M9) ---------------------------
+        # --- Snapshot before mutation (RT#2 / M9) ----------------------------
         snapshot_source(data_path, doc_dir, version=1)
 
-        # --- Apply patches from the interview log (pure, no I/O) ------------
+        # --- Apply patches from the interview log (pure, no I/O) -------------
         patched = apply_patches(data, log)
 
         # M5.1: No sentinel in the patched dict
         patched_text = yaml.safe_dump(patched, sort_keys=False, allow_unicode=True)
         assert "[[DDO::REQUIRES_INPUT:" not in patched_text, (
-            "Sentinel [[DDO::REQUIRES_INPUT:...]] found in patched YAML; "
-            "the gap-closing interview_log did not resolve all required fields."
+            f"Sentinel [[DDO::REQUIRES_INPUT:...]] found after patching with {log_filename}; "
+            "the interview_log did not resolve all required fields."
         )
 
-        # --- Commit the patched dict (double-validates internally) ----------
+        # --- Commit the patched dict (double-validates internally) -----------
         commit_refine(data_path, patched, force=True)
 
         # M5.2: committed YAML passes validate() (zero-hallucination + evidence)
@@ -122,7 +120,7 @@ def test_gap_closing_pass(tmp_path, repo_root):
     template = meta.get("template", "prd_default")
 
     for fmt in ("pdf", "html", "md"):
-        out_path = tmp_path / f"loop_test_output.{fmt}"
+        out_path = tmp_path / f"loop_output.{fmt}"
         result = subprocess.run(
             [
                 "uv",

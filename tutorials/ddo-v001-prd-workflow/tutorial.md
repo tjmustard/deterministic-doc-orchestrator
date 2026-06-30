@@ -34,7 +34,7 @@ Before starting, ensure the following are in place:
 - **Suite passing** — verify your environment is clean:
   ```bash
   uv run pytest -q
-  # Expected: 78 passed
+  # Expected: 188 passed
   ```
 - **Basic YAML familiarity** — you should be able to read and edit `.yaml`
   files with a text editor. No prior Python knowledge is required to follow
@@ -378,9 +378,9 @@ identical; byte-identity requires `--timestamp`.
   dedicated tutorial (`tutorials/ddo-v001-scientific-report-workflow/`) is
   planned.
 
-- **DDO adversarial review loop (v0.0.2 roadmap)** — the skills
-  `ddo-red-team`, `ddo-interview`, and `ddo-refine` are out of scope for
-  v0.0.1. Once available, they will read the Markdown/HTML render, critique
-  it through a configurable persona lens, and propose targeted patches to
-  `document_data.yaml` — leaving the YAML as the only mutable source of
-  truth throughout.
+- **DDO adversarial review loop** — the skills `ddo-red-team`,
+  `ddo-interview`, and `ddo-refine` shipped in v0.0.2 and are fully
+  available. They read the Markdown/HTML render, critique it through a
+  configurable persona lens, and propose targeted patches to
+  `document_data.yaml`. See
+  [`tutorials/ddo-adversarial-loop-v0.0.2/tutorial.md`](../ddo-adversarial-loop-v0.0.2/tutorial.md).

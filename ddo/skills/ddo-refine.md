@@ -160,6 +160,10 @@ Approve and commit? Options:
 [WAITING FOR USER RESPONSE]
 ```
 
+**Note on structural op diffs:** `append` and `insert` ops produce multi-line diffs showing the full added YAML object as `+` lines; `delete` produces a multi-line removal as `-` lines. Display the full diff verbatim — **do not truncate or summarize** structural mutations. The human needs to see the complete added/removed object to make an informed approval decision.
+
+**Human authorization gate:** The Before/After diff is the authoritative gate where the human approves the actual mutation. The interview agent's display of `value` in the decision prompt was a proposal; this diff is where the human confirms the change before any write occurs.
+
 ### 7. Handle skip-and-dependents
 
 If the user types `skip <n>`, identify all patches with `depends_on` referencing
@@ -239,6 +243,24 @@ append_history(doc_dir, entry)
 
 If the render **failed**, do NOT mark findings `applied` and do NOT append a
 history record.  Surface the error and halt.
+
+## DanglingRefError Handling
+
+If `apply_patches` raises `DanglingRefError`, the delete was refused because the evidence entry is still referenced in content sections. Output the exception's `.paths` list to the human in this exact format:
+
+```
+Refused: evidence_bank[N] is still referenced at:
+  - content.sections[0].evidence[1]
+  - content.sections[2].evidence[0]
+  (... all paths from DanglingRefError.paths)
+
+To proceed: issue `set` patches to update or remove each referencing path,
+then resubmit the delete as a later patch entry in the next batch.
+```
+
+**Do NOT proceed with the delete.** Do NOT modify `document_data.yaml`. Instruct the interview agent to:
+1. Issue `set` patches for each referencing path (update or null-out the reference)
+2. Resubmit the `delete evidence_bank[N]` as a subsequent patch entry after the references are cleared
 
 ## **Negative Constraints**
 
