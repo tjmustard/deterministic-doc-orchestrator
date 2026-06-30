@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.2] - 2026-06-29
+
+### Added
+- **`ddo/review.py`**: Critique/interview data layer for the adversarial loop. Owns structural contracts (`validate_report`, `validate_interview_log`), `_vN` derivation (`report_version` = max(N)+1, `current_version` = max(N)), torn-pass detection (`detect_incomplete_pass`), atomic contained writes (`write_report`, `write_interview_log`, `mark_findings`, `append_history`), and deterministic view generation (`render_report_view`, `render_history_view`) — no wall-clock at view-gen time; all timestamps come from stored report/log dicts.
+- **`ddo/refine.py`**: Mutation layer for the adversarial loop — the only permitted writer of `document_data.yaml` during the refine phase. Hand-rolled path DSL parser (`parse_path`, never `eval`); pure in-memory `apply_patches` (constrained `set`: leaf-scalar only, no auto-vivify, no type change; `append_evidence`; `append_review_log`); `refine_structural_check` (refine-only, distinct from `validation_gate`); `snapshot_source` (`force=False` — byte-for-byte pre-mutation copy, double-snapshot fails closed); `commit_refine` (double-checks + `safe_dump(sort_keys=False, allow_unicode=True)` + `atomic_write`).
+- **`ddo/skills/ddo-red-team.md`**: Cognitive node for the Red Team phase. Enforces a fresh-context firewall (prior-phase rationale must not be inherited); runs torn-pass check; resolves persona with hard error on missing file; delegates all mechanics to `ddo.review`; emits `red_team_report_vN.yaml` + `red_team_view_vN.md`; halts at `[WAITING FOR USER REVIEW]`.
+- **`ddo/skills/ddo-interview.md`**: Cognitive node for the Interview phase. Loads the machine-readable report (never the `.md` view); filters `applied:false` findings; sorts Critical→Major→Minor; presents `batch_size=2` per turn; writes `interview_log_vN.yaml` via `ddo.review`; marks only `decision_recorded` flag (never `applied` — that is `ddo-refine`'s job).
+- **`ddo/skills/ddo-refine.md`**: Cognitive node for the Refine phase. Torn-pass check → `snapshot_source` → `apply_patches` → `refine_structural_check` + `validate` in-memory → unified diff HITL gate → `commit_refine` → `ddo-render` skill. Marks `applied` and appends `history.yaml` only after render succeeds.
+- **`tests/unit/test_review.py`** and **`tests/unit/test_refine.py`**: 81 new unit tests covering version derivation, torn-pass detection, structural validation, pure patch application, path DSL parsing, snapshot/commit flow, view rendering, and history management.
+- **`tests/integration/test_loop.py`**: End-to-end adversarial loop integration test (gap-closing pass: red-team report → interview log → refine commit → history append).
+- **`spec/compiled/SuperPRD_v0.0.2_AdversarialLoop.md`**: Complete adversarial loop specification — 6 user stories, 13 Red Team resolutions (RT1–RT13), data contracts for `red_team_report_vN.yaml` / `interview_log_vN.yaml` / `history.yaml`, full module API, success metrics M1–M9, and negative constraints.
+- **`spec/compiled/architecture.yml`**: Updated hypergraph with new nodes for `ddo.review`, `ddo.refine`, `ddo-red-team`, `ddo-interview`, and `ddo-refine`.
+- **`tutorials/ddo-adversarial-loop-v0.0.2/tutorial.md`**: 6-section tutorial for the v0.0.2 adversarial loop using the Biodegradable Polyester Optimization Report as a worked example (including a real Critical finding: the paper's own Z-score formula ranks the recommended candidate third).
+- **`tutorials/ddo-adversarial-loop-v0.0.2/input_files/`**: `validate()`-clean `document_data.yaml` with intentional flaws intact + representative rendered Markdown.
+- **`tutorials/ddo-adversarial-loop-v0.0.2/output_files/`**: Byte-verified `red_team_report_v1.yaml`, `red_team_view_v1.md`, `interview_log_v1.yaml`, `history.yaml`, and `history.md` — all confirmed against the real `ddo.review` / `ddo.refine` / `ddo.validation` modules via an automated verification script.
+- **`tutorials/ddo-adversarial-loop-v0.0.2/code_samples/`**: Skill→module delegation reference for all three adversarial-loop phases (`red_team_call.py`, `interview_call.py`, `refine_call.py`).
+- **`tutorials/ddo-adversarial-loop-v0.0.2/architecture_evolution/pipeline_v0.0.1_to_v0.0.2.md`**: ASCII before/after pipeline diagrams, what-is-new comparison table, carried-forward invariants, and the fresh-context firewall rationale.
+
+### Changed
+- **`pyproject.toml`**: Version bumped `0.0.1` → `0.0.2`.
+- **Test suite**: Expanded from 78 to 159 passing tests.
+
 ## [0.0.1] - 2026-06-29
 
 ### Added

@@ -1,0 +1,92 @@
+# review_history/red_team_report_v1.yaml
+# Emitted by ddo-red-team, then flag-updated by ddo-interview (decision_recorded)
+# and ddo-refine (applied). Shown here in its POST-PASS state.
+#
+# At EMIT time every finding has decision_recorded:false, applied:false,
+# resolution:null. The flags below reflect the completed v1 pass:
+#   F-001 revise      -> decision_recorded:true, applied:true
+#   F-002 acknowledge -> decision_recorded:true, applied:false (logged to review_log)
+#   F-003 acknowledge -> decision_recorded:true, applied:false (logged to review_log)
+#   F-004 add_evidence-> decision_recorded:true, applied:true
+#   F-005 defer       -> decision_recorded:true, applied:false
+meta:
+  version: 1
+  persona: scientific_reviewer
+  document: output/copolyester-optimization.md
+  timestamp: '2026-06-29T20:10:00Z'
+findings:
+  - id: F-001
+    severity: Critical
+    category: Overreaching Conclusions
+    location: 6. Conclusion
+    description: >-
+      The report recommends PX-104 as the optimal candidate, but recomputing the
+      paper's own objective function Z = 0.3*S + 0.4*Y - 0.1*T - 0.2*E on the
+      Phase II data ranks PX-104 third (45.96), behind PX-103 (51.12) and PX-105
+      (46.44). The stated conclusion is not supported by the stated methodology.
+    suggestion: >-
+      Tabulate the computed Z for all candidates and recommend the true maximum,
+      or correct the objective function/weights so the model actually selects
+      PX-104, and state which.
+    decision_recorded: true
+    applied: true
+    resolution: null
+  - id: F-002
+    severity: Critical
+    category: Methodological Vagueness
+    location: 3. Methodology
+    description: >-
+      The toxicity term -w_t*T_i is sign-inverted relative to the stated goal of
+      minimizing toxicity. LD50 is inversely related to toxicity (a higher LD50
+      is safer), so subtracting it penalizes safer candidates and effectively
+      maximizes toxicity.
+    suggestion: >-
+      Replace LD50 with a monotonic toxicity index, or add (rather than subtract)
+      a transformed safety term, and re-derive Z.
+    decision_recorded: true
+    applied: false
+    resolution: null
+  - id: F-003
+    severity: Major
+    category: Statistical Ambiguity
+    location: 3. Methodology
+    description: >-
+      The methodology claims 'normalized weights', but the variables are never
+      normalized before the weighted sum. Raw solubility (12-88 mg/L) dwarfs
+      ecology impact (1.8-4.2 kg CO2/kg), so the composite is dominated by
+      magnitude, not by the intended weighting.
+    suggestion: >-
+      Apply min-max or z-score normalization to each metric before weighting, and
+      report the normalized values.
+    decision_recorded: true
+    applied: false
+    resolution: null
+  - id: F-004
+    severity: Major
+    category: Unsupported Assertions
+    location: 4. Discussion
+    description: >-
+      The claim that gas chromatography indicates unreacted monomer residues in
+      PX-103 cites no entry in the evidence_bank; the supporting GC dataset is not
+      referenced.
+    suggestion: >-
+      Add the GC-MS residual-monomer dataset to the evidence_bank and reference it
+      from the discussion.
+    decision_recorded: true
+    applied: true
+    resolution: null
+  - id: F-005
+    severity: Minor
+    category: Missing Limitations
+    location: 5. Conclusion
+    description: >-
+      No limitations are acknowledged: replicate counts, sample sizes, and
+      confidence intervals for the murine LD50 assays are absent, so the
+      reproducibility and statistical strength of the toxicity figures cannot be
+      assessed.
+    suggestion: >-
+      Add a limitations subsection stating n, replicate counts, and CIs for the
+      LD50 measurements.
+    decision_recorded: true
+    applied: false
+    resolution: null

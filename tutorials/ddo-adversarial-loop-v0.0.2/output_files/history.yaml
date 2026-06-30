@@ -1,0 +1,20 @@
+# review_history/history.yaml
+# Single consolidated machine record, appended by ddo.review.append_history AFTER
+# the re-render succeeds. The file tree is authoritative; a record without
+# backing artifacts is flagged `_phantom: true`.
+passes:
+  - version: 1
+    timestamp: '2026-06-29T20:15:00Z'
+    persona: scientific_reviewer
+    findings:
+      critical: 2
+      major: 2
+      minor: 1
+    resolutions:
+      revise: 1
+      add_evidence: 1
+      acknowledge: 2
+      dispute: 0
+      defer: 1
+    applied: 2
+    render: ok

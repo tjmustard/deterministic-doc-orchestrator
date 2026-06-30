@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-    <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/releases/latest"><img src="https://img.shields.io/badge/release-v0.0.1-blue" alt="Latest Release"/></a>
+    <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/releases/latest"><img src="https://img.shields.io/badge/release-v0.0.2-blue" alt="Latest Release"/></a>
     <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/stargazers"><img src="https://img.shields.io/github/stars/tjmustard/deterministic-doc-orchestrator?style=social" alt="GitHub stars"/></a>
     <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/blob/main/LICENSE"><img src="https://img.shields.io/github/license/tjmustard/deterministic-doc-orchestrator" alt="License"/></a>
 </p>
@@ -87,11 +87,13 @@ ddo/
 ├── validation.py     # Importable validation gate (validate() + ValidationError)
 ├── paths.py          # Pure path helpers (slug sanitizer + path containment check)
 ├── ingest.py         # Atomic write, overwrite guard, fabrication tripwire
+├── review.py         # Adversarial loop data layer (versioning, validation, atomic writes, views)
+├── refine.py         # Mutation layer — only permitted writer of document_data.yaml at refine time
 ├── schemas/          # YAML schema contracts (prd.yaml, scientific_report.yaml)
 ├── templates/        # Typst (.typst) and Jinja2 (.jinja2) rendering templates
 ├── personas/         # Adversarial review lenses (product_critic, scientific_reviewer)
 ├── fonts/            # Bundled DejaVu fonts (hermetic — no system fonts required)
-└── skills/           # ddo-ingest.md and ddo-render.md cognitive node definitions
+└── skills/           # ddo-ingest.md, ddo-render.md, ddo-red-team.md, ddo-interview.md, ddo-refine.md
 
 scripts/              # fixture_signoff_guard.py — pre-commit/CI guard for fixture promotion
 tests/
@@ -100,8 +102,8 @@ tests/
 ├── fixtures/         # Human-promoted golden regression baselines (DDO_FIXTURE_SIGNOFF=1)
 └── data/             # Test input YAML files (example documents)
 
-spec/compiled/        # Ground truth: architecture.yml, SuperPRD.md
-tutorials/            # Step-by-step workflow tutorials (ddo-v001-prd-workflow/, ...)
+spec/compiled/        # Ground truth: architecture.yml, SuperPRD.md, SuperPRD_v0.0.2_AdversarialLoop.md
+tutorials/            # Step-by-step workflow tutorials (ddo-v001-prd-workflow/, ddo-adversarial-loop-v0.0.2/, ...)
 Documents/            # Generated output — gitignored; YYYY.MM.DD_DocType_Title/ structure
 .agents/              # HACF framework toolchain (skills, schemas, rules, scripts, memory)
 .claude/              # Claude Code slash command bridges and settings
@@ -128,23 +130,29 @@ The DDO pipeline is strictly sequential. Each phase produces a verifiable artifa
 **`[WAITING FOR USER REVIEW]`** — User reviews the rendered document and approves before proceeding.
 
 ### Phase 3: Red Team (`ddo-red-team`)
-1. The assigned persona reads the Jinja2/Markdown render (not the PDF).
-2. Produces adversarial critique targeting accuracy, clarity, completeness, and claim support.
-3. Writes findings to `red_team_report.yaml`.
 
-**`[WAITING FOR USER REVIEW]`** — User reviews the critique and approves which findings to address.
+> **Fresh context required.** Run in a new conversation that has not seen the authoring or render phases.
+
+1. Check for a torn prior pass; halt if one is detected.
+2. The assigned persona reads the rendered Markdown or HTML (never the PDF).
+3. Applies the persona's attack-vector taxonomy; every finding receives a fixed-enum severity: `Critical`, `Major`, or `Minor`.
+4. Writes `red_team_report_vN.yaml` and a deterministic human-readable `red_team_view_vN.md` via `ddo.review`.
+
+**`[WAITING FOR USER REVIEW]`** — User reviews the critique before proceeding to interview.
 
 ### Phase 4: Interview (`ddo-interview`)
-1. Structured Q&A between the assigned persona and the document author role.
-2. Each approved finding from Phase 3 is resolved through structured dialogue.
-3. Resolutions are written to `interview_log.yaml`.
+1. Load the machine-readable `red_team_report_vN.yaml`; filter to `applied: false` findings; sort Critical → Major → Minor.
+2. Present findings in batches of 2 per turn; the user assigns a decision to each: `revise`, `add_evidence`, `acknowledge`, `dispute`, or `defer`.
+3. Write resolutions to `interview_log_vN.yaml`; mark the `decision_recorded` flag on each resolved finding.
 
-**`[WAITING FOR USER REVIEW]`** — User reviews and approves the interview log before mutations are applied.
+**`[WAITING FOR USER REVIEW]`** — User reviews the interview log before mutations are applied.
 
 ### Phase 5: Refine (`ddo-refine`)
-1. Apply approved mutations from `interview_log.yaml` to `document_data.yaml`.
-2. Re-run `ddo-render` to produce the updated document.
-3. Final human review.
+1. Torn-pass check; take a byte-for-byte snapshot of `document_data.yaml` (`document_data_pre_vN.yaml`) before any mutation.
+2. Apply patches from `interview_log_vN.yaml` purely in memory — constrained `set` (leaf-scalar only, no auto-vivify, no type change), `append_evidence`, or `append_review_log`.
+3. Run `refine_structural_check` + `validate` in-memory; present a unified diff HITL gate before committing.
+4. Commit atomically; re-render via `ddo-render`.
+5. On successful render: mark `applied` flag on landed findings; append a pass record to `history.yaml` + `history.md`.
 
 ## 📄 Schema Contract
 
@@ -198,31 +206,34 @@ See `ddo/schemas/prd.yaml` and `ddo/schemas/scientific_report.yaml` for the full
 - [x] Core Pipeline (v0.0.1)
   - [x] `ddo-ingest` skill
   - [x] `ddo-render` skill
-  - [ ] `ddo-red-team` skill
-  - [ ] `ddo-interview` skill
-  - [ ] `ddo-refine` skill
   - [x] `build.py` hermetic build orchestrator (PEP 723, bundled Typst + fonts)
   - [x] `validation.py` importable validation gate
   - [x] `paths.py` slug sanitizer + path containment
   - [x] `ingest.py` atomic write, overwrite guard, fabrication tripwire
-- [x] Schemas (v0.0.1)
+- [x] Adversarial Loop (v0.0.2)
+  - [x] `ddo-red-team` skill (fresh-context firewall, fixed severity enum, `ddo.review` delegation)
+  - [x] `ddo-interview` skill (batched Q&A, 5 decision types, `decision_recorded` flag only)
+  - [x] `ddo-refine` skill (snapshot → patch → validate → diff gate → commit → render → audit)
+  - [x] `ddo.review` module (versioning, torn-pass detection, structural validation, atomic writes, deterministic views)
+  - [x] `ddo.refine` module (hand-rolled path DSL, pure patching, `snapshot_source`, `commit_refine`)
+- [x] Schemas
   - [x] PRD schema (`ddo/schemas/prd.yaml`)
   - [x] Scientific report schema (`ddo/schemas/scientific_report.yaml`)
-- [x] Templates (v0.0.1)
+- [x] Templates
   - [x] Typst PRD template
   - [x] Typst scientific report template
   - [x] Jinja2 HTML templates (autoescape enabled)
   - [x] Jinja2 Markdown templates
-- [x] Personas (v0.0.1)
+- [x] Personas
   - [x] Product Critic
-  - [x] Scientific Reviewer
-- [x] Test Suite (v0.0.1)
-  - [x] 78 tests passing (unit + integration)
+  - [x] Scientific Reviewer (actively exercised in v0.0.2 adversarial loop)
+- [x] Test Suite
+  - [x] 159 tests passing (unit + integration)
   - [x] Golden regression baselines with human sign-off guard
-- [x] Tutorials (v0.0.1)
+- [x] Tutorials
   - [x] PRD YAML workflow tutorial (`tutorials/ddo-v001-prd-workflow/`)
-  - [ ] Scientific report workflow tutorial (planned v0.0.2)
-- [ ] Red Team / Interview / Refine pipeline phases (v0.0.2+)
+  - [x] Adversarial loop tutorial (`tutorials/ddo-adversarial-loop-v0.0.2/`)
+- [ ] Scientific report workflow tutorial (planned v0.0.3)
 
 ## 🤝 Support
 

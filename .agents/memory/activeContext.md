@@ -8,70 +8,52 @@ This file updates dynamically after *every task completion*. It captures the "No
 - Agent reads this *first* to understand where to pick up.
 
 ## Current Sprint Goal
-**DDO v0.0.1 — COMPLETE ✅ (2026-06-29)**
+**DDO v0.0.2 — COMPLETE ✅ (2026-06-29)**
 
-All 6 MiniPRDs implemented, audited, and archived. Full suite **78 passed / 0 skipped**, ruff clean. Documentation updated.
+Adversarial loop fully implemented, 159 tests passing, tutorial verified, documentation updated.
 
-## v0.0.1 Implementation Summary
+## v0.0.2 Implementation Summary
 
-### Core Package (ddo/)
-- `ddo/build.py` — PEP 723 hermetic orchestrator; `ddo/build.py.lock` enforced by `uv run --locked`
-- `ddo/validation.py` — importable gate: meta contract → evidence integrity → sentinel scan
-- `ddo/paths.py` — `sanitize_slug`, `document_dir`, `assert_within_documents` / `PathContainmentError`
-- `ddo/ingest.py` — atomic write, `OverwriteError`, `fabrication_tripwire` (advisory)
-- `ddo/schemas/` — `prd.yaml`, `scientific_report.yaml` (canonical minimal contracts)
-- `ddo/templates/` — Typst + Jinja2 for prd/scientific_report × pdf/html/md
-- `ddo/fonts/` — bundled DejaVu (hermetic PDF; no system Typst required)
-- `ddo/personas/` — `product_critic.md`, `scientific_reviewer.md`
-- `ddo/skills/` — `ddo-ingest.md`, `ddo-render.md`
+### New Modules
+- `ddo/review.py` — Critique/interview data layer: `report_version`, `current_version`, `detect_incomplete_pass`, `validate_report`, `validate_interview_log`, `write_report`, `write_interview_log`, `mark_findings`, `append_history`, `render_report_view`, `render_history_view`
+- `ddo/refine.py` — Mutation layer: `parse_path` (hand-rolled DSL, never `eval`), `apply_patches` (pure), `refine_structural_check`, `snapshot_source` (`force=False`), `commit_refine` (`safe_dump(sort_keys=False, allow_unicode=True)`)
 
-### Tests & Scripts
-- `tests/unit/` — 25+ unit tests (validation, paths, ingest, personas, fixture guard)
-- `tests/integration/` — M1–M4 determinism + M5 ingest contract
-- `tests/fixtures/` — 7 human-promoted golden baselines (DDO_FIXTURE_SIGNOFF=1 required to commit)
-- `scripts/fixture_signoff_guard.py` — pre-commit/CI guard for fixture promotion
+### New Skills
+- `ddo/skills/ddo-red-team.md` — Fresh-context firewall; delegates to `ddo.review`; emits `red_team_report_vN.yaml` + `red_team_view_vN.md`
+- `ddo/skills/ddo-interview.md` — Batched Q&A; 5 decision types; marks `decision_recorded` only
+- `ddo/skills/ddo-refine.md` — Full refine pipeline: snapshot → patch → validate → diff gate → commit → render → audit
 
-### Audit Findings (v0.0.1)
-- **5 of 6 MiniPRDs PASSED** cleanly on first audit
-- **SchemaTemplateMigration FAILED** → found real XSS bug: `select_autoescape(enabled_extensions=("html",))` silently disabled for `.jinja2` templates → **FIXED** (`autoescape=(fmt == "html")`)
-- **BuildCore** false-positive on `uv.lock` (correct lock is `ddo/build.py.lock` per PEP 723)
-- Golden fixture `prd_example.html` regenerated: `& User Personas` → `&amp; User Personas` (now valid HTML)
-- All 6 MiniPRDs archived to `spec/archive/*_AUDITED.md`
-- `spec/compiled/` now contains only `architecture.yml` (24 nodes, all `status: clean`) and `SuperPRD.md`
+### Tests & Spec
+- `tests/unit/test_review.py` + `tests/unit/test_refine.py` — 81 new unit tests (159 total, 0 skipped)
+- `tests/integration/test_loop.py` — gap-closing integration test
+- `spec/compiled/SuperPRD_v0.0.2_AdversarialLoop.md` — 6 user stories, RT1–RT13, M1–M9 success metrics
 
-### Documentation Updated (v0.0.1)
-- `pyproject.toml` — version `0.0.0` → `0.0.1`
-- `CHANGELOG.md` — `## [0.0.1] - 2026-06-29` block added
-- `README.md` — badge, prerequisites, directory structure, schema contract, roadmap all updated
-- `.agents/memory/productContext.md` — DDO-specific content written
-- `.agents/memory/systemPatterns.md` — DDO-specific patterns written
+### Tutorial
+- `tutorials/ddo-adversarial-loop-v0.0.2/tutorial.md` — 6-section tutorial; verified byte-for-byte against real modules
+- `tutorials/ddo-adversarial-loop-v0.0.2/input_files/` — validate()-clean `document_data.yaml` + rendered MD
+- `tutorials/ddo-adversarial-loop-v0.0.2/output_files/` — report, view, log, history (all byte-verified)
+- `tutorials/ddo-adversarial-loop-v0.0.2/code_samples/` — skill→module delegation reference (3 phases)
+- `tutorials/ddo-adversarial-loop-v0.0.2/architecture_evolution/` — v0.0.1→v0.0.2 pipeline diagrams
 
-## v0.0.1 Post-Implementation Additions
+### Documentation Updated (v0.0.2)
+- `pyproject.toml` — version `0.0.1` → `0.0.2`
+- `CHANGELOG.md` — `## [0.0.2] - 2026-06-29` block added
+- `README.md` — badge, directory structure (`review.py`, `refine.py`, new skills), pipeline phase descriptions (3/4/5), roadmap (all v0.0.2 items checked; test count 78→159)
+- `.agents/memory/activeContext.md` — this file
+- `.agents/memory/systemPatterns.md` — v0.0.2 patterns added
 
-### Tutorials (2026-06-29)
-- `tutorials/ddo-v001-prd-workflow/tutorial.md` — 9-section PRD YAML workflow tutorial
-- `tutorials/ddo-v001-prd-workflow/input_files/prd_example.yaml` — gate-passing example input
-- `tutorials/ddo-v001-prd-workflow/output_files/` — pre-rendered HTML + MD examples
-- `tutorials/ddo-v001-prd-workflow/code_samples/render_commands.sh` — render commands reference
+## Key Design Decisions (v0.0.2)
 
-### Process Documents (2026-06-29)
-- `spec/process/process_20260629_101449_session.md` — v0.0.1 session retrospective
+| Decision | Rationale |
+|---|---|
+| `mark_findings` has two distinct fields (`decision_recorded` / `applied`) | Prevents interview from auto-committing; `applied` only set after render succeeds |
+| `snapshot_source(force=False)` | Double-snapshot fails closed, never clobbers a recovery point |
+| `safe_dump(sort_keys=False)` everywhere | Preserves YAML key insertion order; `sort_keys=True` is forbidden (RT#3) |
+| Path DSL is hand-rolled | `eval`/`exec` on user-controlled strings is a security non-starter |
+| `refine_structural_check` lives in `ddo.refine`, NOT `ddo.validation` | Keeps `validation_gate` unmodified (D5 preserved) |
+| `render_report_view` / `render_history_view` read stored data, not wall-clock | Views are deterministic replays of stored state |
+| Fresh-context firewall at `ddo-red-team` only | `ddo-interview` and `ddo-refine` are collaborative; firewall protects critique independence |
 
-### Documentation Updated
-- `CHANGELOG.md` — tutorial + process doc entries appended to [0.0.1]
-- `README.md` — `tutorials/` entry in directory structure; Roadmap tutorial items
-- `tutorials/ddo-v001-prd-workflow/tutorial.md` — fixed test count 77→78
-
-## Next Steps (v0.0.2+)
-- Red Team phase (`ddo-red-team` skill)
-- Interview phase (`ddo-interview` skill)
-- Refine phase (`ddo-refine` skill)
-- Scientific report tutorial (`tutorials/ddo-v001-scientific-report-workflow/`)
-- Commit v0.0.1 backbone (with `DDO_FIXTURE_SIGNOFF=1` for `tests/fixtures/` changes)
-
-## Files to Commit (v0.0.1)
-Fixture changes require env var:
-```
-DDO_FIXTURE_SIGNOFF=1 git add tests/fixtures/ && git commit ...
-```
-Remaining changes (build.py autoescape fix, pyproject.toml version bump, CHANGELOG, README, tutorials/, spec/process/) can commit normally.
+## Next Steps (v0.0.3+)
+- Scientific report workflow tutorial (`tutorials/ddo-v001-scientific-report-workflow/`)
+- Commit v0.0.2 work (untracked files + architecture.yml changes)

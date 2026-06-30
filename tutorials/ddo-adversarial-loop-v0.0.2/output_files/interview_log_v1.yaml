@@ -1,0 +1,66 @@
+# review_history/interview_log_v1.yaml
+# Written by ddo-interview via ddo.review.write_interview_log (atomic, contained).
+# Decisions: F-001 revise (set), F-002/F-003 acknowledge (null -> meta.review_log),
+# F-004 add_evidence (append_evidence), F-005 defer (null).
+# Only the `set` and `append_evidence` patches mutate the document body/bank;
+# acknowledge/defer carry patch:null. ddo-refine appends review_log records for
+# the acknowledged findings during the audit-reconcile step.
+meta:
+  version: 1
+  timestamp: '2026-06-29T20:12:00Z'
+resolutions:
+  - finding_id: F-001
+    decision: revise
+    detail: >-
+      Recommendation contradicts the computed Z ranking. Replace the discussion
+      with the actual Z values and defer selection pending the objective-function
+      fix.
+    patch:
+      op: set
+      target: content.sections[3].body          # Discussion — leaf scalar (str -> str)
+      value: >-
+        Several structure-property trade-offs emerge. First, there is a distinct
+        inverse correlation between manufacturing yield and water solubility:
+        PX-102 achieved the highest yield (91.5%) but the lowest solubility (12.0
+        mg/L), whereas PX-103 is highly amorphous and soluble (88.0 mg/L) but
+        suffers from poor yield (64.0%). Second, PX-103 demonstrated the highest
+        toxicity (lowest LD50 at 5.2 g/kg); see evidence gc_monomer_residue for
+        the gas-chromatography assay attributing this to unreacted monomer
+        residues. Third, computing the objective function
+        Z = 0.3*S + 0.4*Y - 0.1*T - 0.2*E on the Phase II data yields
+        PX-103 = 51.12, PX-105 = 46.44, PX-104 = 45.96, PX-101 = 44.21, and
+        PX-102 = 37.98. Under the function as currently specified PX-103 ranks
+        highest and PX-104 ranks third. This ordering is sensitive to the
+        unresolved toxicity-term sign and normalization issues recorded in the
+        review log, so candidate selection is deferred pending an
+        objective-function revision.
+      depends_on: []
+  - finding_id: F-002
+    decision: acknowledge
+    detail: >-
+      Genuine flaw: the -w_t*T_i term penalizes high LD50 (safer) candidates.
+      Full re-derivation of the objective function is a model revision deferred to
+      v0.0.3; recorded in the review log for traceability.
+    patch: null
+  - finding_id: F-003
+    decision: acknowledge
+    detail: >-
+      Variables are not normalized before weighting. Normalization rework is
+      bundled with the F-002 objective-function revision; recorded in the review
+      log.
+    patch: null
+  - finding_id: F-004
+    decision: add_evidence
+    detail: "Attach the GC-MS dataset backing the monomer-residue claim."
+    patch:
+      op: append_evidence
+      value:
+        id: gc_monomer_residue
+        type: data
+        content: "GC-MS residual-monomer assay for PX-103 (amorphous matrix)."
+        source: "lab-repo/data/gc_px103.csv"
+      depends_on: []
+  - finding_id: F-005
+    decision: defer
+    detail: "Limitations subsection to be added in a later pass."
+    patch: null
