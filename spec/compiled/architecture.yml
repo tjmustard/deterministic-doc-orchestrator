@@ -3,14 +3,15 @@ nodes:
   dimension: System
   status: clean
   associated_file: spec/compiled/SuperPRD_v0.0.2_AdversarialLoop.md
-  description: 'End-to-end DDO pipeline: Ingest \u2192 Render \u2192 Red Team \u2192
-    Interview \u2192 Refine. Transforms structured YAML into reproducible PDFs, HTML,
-    and Markdown via a 5-phase, HITL-gated state machine with zero-hallucination guarantee.
-    v0.0.2 complete: ddo.review data layer (structural contracts, atomic writes, _vN
-    derivation, torn-pass detection), ddo.refine mutation layer (hand-rolled path
-    DSL parser, constrained pure apply_patches, pre-refine snapshots, validate-before-write),
-    and three adversarial-loop skills (ddo-red-team, ddo-interview, ddo-refine) mediating
-    human-in-the-loop gap-closing.
+  description: 'End-to-end DDO pipeline: Ingest \u2192 Render \u2192 Red Team \u2192 Interview \u2192 Refine.
+    Transforms structured YAML into reproducible PDFs, HTML, and Markdown via a 5-phase,
+    HITL-gated state machine with zero-hallucination guarantee. v0.0.2 complete: ddo.review
+    data layer (structural contracts, atomic writes, _vN derivation, torn-pass detection),
+    ddo.refine mutation layer (hand-rolled path DSL parser, constrained pure apply_patches,
+    pre-refine snapshots, validate-before-write), three adversarial-loop skills (ddo-red-team,
+    ddo-interview, ddo-refine). v0.0.5 adds optional meta.style_profile field with untrusted
+    phrasing-only guidance scoped to content.sections[*].body, injected via ddo-ingest and
+    ddo-interview, persisted in document_data.yaml but render-invisible.
 
     '
   inputs:
@@ -27,16 +28,16 @@ nodes:
   status: clean
   associated_file: ddo/
   description: "Core DDO Python package (ddo/). Seven core modules: build.py (hermetic\
-    \ PEP 723 render orchestrator with timeout/size guards), validation.py (importable\
-    \ validation gate: contract + evidence integrity + sentinel detection), paths.py\
-    \ (pure path sanitization and containment enforcement), ingest.py (atomic write\
-    \ + crash-safe temp\u2192replace pipeline + fabrication tripwire), review.py (critique/interview\
+    \ PEP 723 render orchestrator with CLI-authoritative --template/--format flags,\
+    \ timeout/size guards, template/font resolution), validation.py (importable validation\
+    \ gate: meta/evidence_bank contract, evidence integrity, sentinel detection), paths.py\
+    \ (pure path sanitization and containment enforcement), ingest.py (atomic write +\
+    \ crash-safe temp\u2192replace pipeline + fabrication tripwire), review.py (critique/interview\
     \ data layer: structural contracts, atomic + contained writes, deterministic view\
-    \ generation, _vN derivation, torn-pass detection), refine.py (mutation layer:\
-    \ hand-rolled path-DSL parser, constrained pure apply_patches, refine-only structural\
-    \ check, pre-refine snapshots, validate-before-write commit). All rendering and\
-    \ adversarial-loop mutations flow through this module; it enforces zero-hallucination\
-    \ and safety invariants.\n"
+    \ generation, _vN derivation, torn-pass detection), refine.py (mutation layer: hand-rolled\
+    \ path-DSL parser, constrained pure apply_patches, refine-only structural check,\
+    \ pre-refine snapshots, validate-before-write commit). All rendering and adversarial-loop\
+    \ mutations flow through this module; it enforces zero-hallucination and safety invariants.\n"
   inputs:
   - data_type: document_data_yaml
     source_id: documents_output
@@ -76,8 +77,12 @@ nodes:
   associated_file: ddo/schemas/
   description: 'YAML schema definitions (prd.yaml, scientific_report.yaml) encoding
     the minimal contract every document_data.yaml must satisfy: a meta block and an
-    evidence_bank array. Authoritative reference for the ddo-ingest skill and the
-    validation gate.
+    evidence_bank array. Authoritative reference for ddo-ingest skill and validation
+    gate. Both schemas include an optional meta.style_profile field (prd.yaml defaults
+    to formal_professional, scientific_report.yaml defaults to technical_precise),
+    placed immediately after persona, resolving to ddo/styles/<stem>.md; if absent,
+    no style anchoring is applied. Field is render-invisible and validation.py (importable
+    gate) ignores it.
 
     '
   inputs: []
@@ -111,14 +116,20 @@ nodes:
   associated_file: ddo/skills/
   description: 'Five HACF cognitive node skill definitions orchestrating the complete
     DDO pipeline: ddo-ingest.md (load source materials, derive meta, write document_data.yaml
-    via ddo.ingest), ddo-render.md (invoke build.py with template/format flags), ddo-red-team.md
-    (fresh-context adversarial critique against persona lens, version derivation,
-    atomic report+view write via ddo.review), ddo-interview.md (paced batched Q&A
-    resolving findings to interview_log_vN.yaml, mark findings decision_recorded),
-    ddo-refine.md (snapshot source, apply validated patches, present Before/After
-    diff for approval, commit via ddo.refine, re-render, mark applied and append history).
-    Skills delegate all deterministic safety mechanics (path derivation, validation,
-    mutation, atomic writes) to ddo_core and never re-implement them.
+    via ddo.ingest), ddo-render.md (invoke build.py with CLI-authoritative --template/--format
+    flags), ddo-red-team.md (fresh-context adversarial critique against persona lens,
+    version derivation, atomic report+view write via ddo.review), ddo-interview.md (paced
+    batched Q&A resolving findings to interview_log_vN.yaml, mark findings decision_recorded),
+    ddo-refine.md (snapshot source, apply validated patches, present Before/After diff
+    for HITL approval, commit via ddo.refine, re-render, mark applied and append history).
+    Skills delegate all deterministic safety mechanics (path derivation, validation, mutation,
+    atomic writes) to ddo_core and never re-implement them. v0.0.5 adds style-profile
+    injection to ddo-ingest.md and ddo-interview.md: stem-validates meta.style_profile
+    (^[a-z][a-z0-9_]*$, re-validated on every read regardless of provenance), hard-fails
+    on referenced-but-missing or present-but-invalid values, reads ddo/styles/<stem>.md
+    as untrusted phrasing-only guidance scoped to content.sections[*].body only (never
+    evidence_bank[*] or meta.*), routes would-be fabrications to [[DDO::REQUIRES_INPUT:
+    ...]] and echoes resolved profile path.
 
     '
   inputs:
@@ -139,17 +150,18 @@ nodes:
   dimension: Module
   status: clean
   associated_file: tests/unit/
-  description: "Unit test suite (tests/unit/) covering all DDO core modules. 13 test\
-    \ files, 150+ tests, all pure (no subprocess, no filesystem mutations beyond tmp_path).\
+  description: "Unit test suite (tests/unit/) covering all DDO core modules. 8 test\
+    \ files, 200+ tests, all pure (no subprocess, no filesystem mutations beyond tmp_path).\
     \ test_validation_gate.py: 25 tests covering meta/evidence_bank contract, ID uniqueness/integrity,\
     \ sentinel detection, orphan warnings. test_ingest_helpers.py: atomic_write overwrite\
     \ guard, crash-safety via temp\u2192replace, fabrication_tripwire token detection.\
     \ test_slug_containment.py: slug sanitization ([a-z0-9-] charset, 80-char cap,\
-    \ [..] + separator prevention, PathContainmentError). test_personas.py: persona\
-    \ file existence + structure validation. test_fixture_signoff_guard.py: pure functions\
-    \ fixtures_touched/is_signed_off/assert_fixture_signoff isolated from git. test_review.py:\
-    \ 40+ tests of ddo.review \u2014 validate_report/validate_interview_log contracts,\
-    \ _vN derivation (max+1, gap handling), torn-pass detection (report-without-log,\
+    \ [..] + separator prevention, PathContainmentError). test_personas.py: AV-NN ID format,\
+    \ sequentiality, uniqueness, snake_case Names validation, sentinel-absence. test_styles.py:\
+    \ (v0.0.5) title heading, five required ## section headings, non-empty bodies, sentinel-absence,\
+    \ parametrized via glob. test_fixture_signoff_guard.py: pure functions fixtures_touched/is_signed_off/assert_fixture_signoff\
+    \ isolated from git. test_review.py: 40+ tests of ddo.review \u2014 validate_report/validate_interview_log\
+    \ contracts, _vN derivation (max+1, gap handling), torn-pass detection (report-without-log,\
     \ source-newer), write operations, flag updates (decision_recorded, applied),\
     \ history accumulation, deterministic view/history generation. test_refine.py:\
     \ 46+ tests of ddo.refine \u2014 parse_path DSL grammar validation, apply_patches\
@@ -165,7 +177,7 @@ nodes:
     implements: []
 - id: tests_integration
   dimension: Module
-  status: needs_review
+  status: clean
   associated_file: tests/integration/
   description: 'Integration test suite (tests/integration/) driving real end-to-end
     DDO pipeline execution via subprocess uv run; all human-gated via DDO_FIXTURE_SIGNOFF=1.
@@ -211,15 +223,15 @@ nodes:
   description: "Gitignored rendered-document output tree (version-controlled source\
     \ YAML only; artifacts auto-generated). Directory layout: Documents/YYYY.MM.DD_DocType_Title/.\
     \ Each document folder contains: (1) document_data.yaml \u2014 the mutable source\
-    \ of truth in YAML, authored by ddo-ingest, mutated by ddo-refine.commit_refine;\
-    \ (2) output/ subfolder \u2014 rendered artifacts (pdf, html, md files), generated\
-    \ by build.py and wiped on each render; (3) review_history/ subfolder \u2014 versioned\
-    \ adversarial-loop artifacts, atomic writes via ddo.review.write_report/write_interview_log/append_history:\
-    \ red_team_report_vN.yaml (machine-readable findings), red_team_view_vN.md (code-generated\
-    \ human view, never re-parsed), interview_log_vN.yaml (resolutions), document_data_pre_vN.yaml\
+    \ of truth in YAML, authored by ddo-ingest, mutated by ddo-refine; (2) output/\
+    \ subfolder \u2014 rendered artifacts (pdf, html, md files), generated by build.py\
+    \ and wiped on each render; (3) review_history/ subfolder \u2014 versioned adversarial-loop\
+    \ artifacts (atomic writes via ddo.review): red_team_report_vN.yaml (machine-readable\
+    \ findings), red_team_view_vN.md (code-generated human view, never re-parsed),\
+    \ interview_log_vN.yaml (resolutions with patches), document_data_pre_vN.yaml\
     \ (byte-for-byte snapshots before each refine), history.yaml (consolidated pass\
     \ records), history.md (code-generated view). All paths derived and containment-checked\
-    \ by ddo.paths/assert_within_documents before any write.\n"
+    \ by ddo.paths.assert_within_documents before any write.\n"
   inputs:
   - data_type: rendered_artifacts
     source_id: ddo_core
@@ -545,22 +557,22 @@ nodes:
   dimension: Atomic
   status: clean
   associated_file: ddo/skills/ddo-red-team.md
-  description: 'HACF cognitive node for the Red Team phase of the adversarial loop.
-    Mandatory fresh-context firewall: does not inherit authoring/ingest/render history;
-    only handoff is path to rendered MD/HTML. (1) Detects torn-pass via review.detect_incomplete_pass
-    and halts if prior pass incomplete. (2) Derives version via review.report_version
-    (max existing N + 1; 1 if none). (3) Resolves persona from meta.persona (loaded
-    from document_data.yaml) or explicit CLI argument; hard-fails (names missing file,
-    lists available personas) if file not found. (4) Reads rendered MD/HTML file (never
-    PDF; parses HTML for text-layer content if needed). (5) Applies persona attack-vector
-    taxonomy, generates findings with id, severity (fixed enum: Critical|Major|Minor),
-    category (free-text), location, description, suggestion. (6) Writes red_team_report_vN.yaml
-    (machine-readable) and deterministic red_team_view_vN.md (code-generated Markdown,
-    human-only, never re-parsed) via review.write_report. (7) Soft-warns if findings
-    > 100 (advisory cap). Halts at [WAITING FOR USER REVIEW] and instructs fresh context
-    before ddo-interview.
-
-    '
+  description: "HACF cognitive node for the Red Team phase of the adversarial loop.\
+    \ Mandatory fresh-context firewall: does not inherit authoring/ingest/render history;\
+    \ only handoff is path to rendered MD/HTML. (1) Detects torn-pass via review.detect_incomplete_pass\
+    \ and halts if prior pass incomplete. (2) Derives version via review.report_version\
+    \ (max existing N + 1; 1 if none). (3) Resolves persona from explicit CLI arg\
+    \ or meta.persona (loaded from document_data.yaml); stem-validates against ^[a-z][a-z0-9_]*$\
+    \ before any Read (RT-10); hard-fails naming missing file + listing available\
+    \ personas if file not found; scans for ## Attack Vectors table and hard-fails\
+    \ if absent (RT-05). (4) Reads rendered MD/HTML file (never PDF). (5) Applies persona\
+    \ attack-vector taxonomy, generates findings with id, severity (fixed enum: Critical|Major|Minor),\
+    \ category (free-text), location, description, suggestion. (6) Writes red_team_report_vN.yaml\
+    \ (machine-readable) and deterministic red_team_view_vN.md (code-generated, human-only,\
+    \ never re-parsed) via review.write_report. (7) Soft-warns if findings > 100 (advisory\
+    \ cap). (8) Echoes AV table and resolved persona + style profile (RT-3) in report\
+    \ header. Halts at [WAITING FOR USER REVIEW] and instructs fresh context before\
+    \ ddo-interview.\n"
   inputs:
   - data_type: rendered_markdown
     source_id: build_orchestrator
@@ -580,14 +592,17 @@ nodes:
   status: clean
   associated_file: ddo/skills/ddo-interview.md
   description: "HACF cognitive node for the Interview phase of the adversarial loop.\
-    \ Loads red_team_report_vN.yaml (machine-readable), filters applied:false findings,\
-    \ sorts by severity (Critical \u2192 Major \u2192 Minor). Presents findings in\
-    \ batches (default 2 per turn). For each finding, user selects revise|add_evidence|acknowledge|dispute|defer.\
-    \ For patch-producing decisions (revise/add_evidence), constructs patch operations\
-    \ (set/append/delete/insert) with path DSL targets. For non-patch decisions, sets\
-    \ patch=null. Writes interview_log_vN.yaml via review.write_interview_log. Marks\
-    \ resolved findings decision_recorded:true in the report via review.mark_findings.\
-    \ Halts at HITL gate [WAITING FOR USER RESPONSE].\n"
+    \ (0) Resolves style_profile upfront (stem-validates, hard-fails on missing/invalid,\
+    \ reads as untrusted phrasing-only guidance scoped to revise patches targeting\
+    \ content.sections[*].body only). Loads red_team_report_vN.yaml (machine-readable),\
+    \ filters applied:false findings, sorts by severity (Critical \u2192 Major \u2192 Minor).\
+    \ Presents findings in batches (default 2 per turn). For each finding, user selects\
+    \ revise|add_evidence|acknowledge|dispute|defer. For patch-producing decisions\
+    \ (revise/add_evidence), constructs patch operations (set/append/delete/insert)\
+    \ with path DSL targets; revise prose respects style profile, add_evidence remains\
+    \ verbatim. For non-patch decisions, sets patch=null. Writes interview_log_vN.yaml\
+    \ via review.write_interview_log. Marks resolved findings decision_recorded:true\
+    \ via review.mark_findings. Halts at [WAITING FOR USER RESPONSE] per batch.\n"
   inputs:
   - data_type: red_team_report_yaml
     source_id: review_engine
@@ -723,3 +738,72 @@ nodes:
     - ddo_personas
     implements:
     - ddo_skills
+- id: ddo_styles
+  dimension: Module
+  status: clean
+  associated_file: ddo/styles/
+  description: 'Style profile definitions (formal_professional.md, technical_precise.md,
+    conversational.md) used by ddo-ingest and ddo-interview to anchor AI-generated
+    prose to a named register (tone/voice/formality/sentence-structure/diction). Referenced
+    from document_data.yaml via optional meta.style_profile field (defaults: prd.yaml
+    → formal_professional, scientific_report.yaml → technical_precise). Each profile
+    is a 5-section free-prose contract (Register & Audience, Voice & Person, Sentence
+    & Structure, Diction, Avoid) containing zero content-bearing or quantitative/factual
+    imperatives. Treated as untrusted phrasing-only guidance by ddo-ingest/ddo-interview;
+    scoped to content.sections[*].body prose only; never applied to evidence_bank or
+    meta.*. Cognitive-only and render-invisible.
+
+    '
+  inputs: []
+  outputs:
+  - data_type: style_lens
+    target_id: ddo_system
+  edges:
+    depends_on: []
+    implements:
+    - ddo_system
+- id: skill_create_style
+  dimension: Atomic
+  status: clean
+  associated_file: ddo/skills/ddo-create-style.md
+  description: "HACF cognitive node for interactive style-profile authoring. Validates\
+    \ slug against ^[a-z][a-z0-9_]*$ (Phase 0). Guides author through paced Q&A loop\
+    \ (\u22642 questions/turn) eliciting five style sections (Phases 1-3). Ships rejection\
+    \ rubric upfront: accepts phrasing/register rules only, rejects content-bearing,\
+    \ quantitative/factual, framing directives, ambiguous instructions (RT-1/RT-2).\
+    \ Actively rejects content imperatives in all sections, held strictest in Diction/Avoid.\
+    \ Assembles draft and renders for author approval (Phase 4-5: HITL gate). Validates\
+    \ sentinels are resolved before write. Includes cognitive overwrite guard (exists-check\
+    \ + literal-filename re-confirm) and HITL [WAITING FOR USER REVIEW] gate. No ddo_core\
+    \ dependency, mirroring ddo-create-persona.\n"
+  inputs: []
+  outputs:
+  - data_type: style_lens
+    target_id: ddo_styles
+  edges:
+    depends_on:
+    - ddo_styles
+    implements:
+    - ddo_skills
+- id: test_styles_unit
+  dimension: Atomic
+  status: clean
+  associated_file: tests/unit/test_styles.py
+  description: 'Glob-based structural validator for all ddo/styles/*.md files (v0.0.5).
+    Includes test_style_dir_has_files directory guard (fails loudly if empty, RT-9).
+    Parametrized assertions per discovered profile: title heading (# **Style Profile:
+    <name>**), all five required ## section headings (Register & Audience, Voice & Person,
+    Sentence & Structure, Diction, Avoid), non-empty section bodies, sentinel-absence
+    ([REQUIRES USER INPUT:, [[DDO::REQUIRES_INPUT:). Negative-case parity (missing heading,
+    empty body, sentinel present) mirrors test_personas.py. Does not assert prose content
+    or register quality (HITL-judged, not CI-judged). Parametrized via glob so ddo-create-style
+    output is automatically covered.
+
+    '
+  inputs: []
+  outputs: []
+  edges:
+    depends_on:
+    - ddo_styles
+    implements:
+    - tests_unit

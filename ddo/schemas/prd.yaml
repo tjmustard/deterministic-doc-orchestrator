@@ -9,6 +9,10 @@ meta:
   authors: []
   status: "draft"
   persona: "product_critic"
+  # Optional. Absent => no-op (no style anchoring). Present-but-invalid ("" / null /
+  # whitespace-only) => hard-fail. Resolves to ddo/styles/<stem>.md; <stem> must match
+  # ^[a-z][a-z0-9_]*$.
+  style_profile: "formal_professional"
   output_formats: ["pdf", "html", "md"]
   template: "prd"
   review_log: [] # Populated by ddo-refine

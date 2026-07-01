@@ -13,7 +13,7 @@ hypergraph_*
 # the human sign-off guard (scripts/fixture_signoff_guard.py), not by .gitignore.
 spec/active/*
 !spec/active/.gitkeep
-spec/archive/*
+#spec/archive/*
 !spec/archive/.gitkeep
 tests/candidate_outputs/*
 !tests/candidate_outputs/.gitkeep

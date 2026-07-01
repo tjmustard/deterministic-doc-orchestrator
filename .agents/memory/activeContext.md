@@ -8,7 +8,103 @@ This file updates dynamically after *every task completion*. It captures the "No
 - Agent reads this *first* to understand where to pick up.
 
 ## Current Sprint Goal
-**DDO v0.0.4 — COMPLETE ✅ (2026-06-30)**
+**DDO v0.0.5 — AUDITED, RECONCILED & RELEASED (2026-06-30)**
+
+Style & Tone Configuration implemented via fan-out subagent execution (3 waves per
+the SuperPRD DAG), then audited via 7 parallel fan-out subagents (one per MiniPRD) —
+all 7 passed contract verification with no punch lists. Hypergraph reconciled
+(`needs_review` → `clean`, 35 nodes) via a Haiku sub-agent. All 7 MiniPRDs archived to
+`spec/archive/*_AUDITED.md`. `pyproject.toml` bumped to `0.0.5`; `CHANGELOG.md` and
+`README.md` updated. 216 tests passing (199 unit + integration, 2 skipped pending
+human sign-off), ruff clean.
+
+## v0.0.5 Implementation Summary
+
+### Execution Method
+Fanned out one subagent per MiniPRD, in 3 DAG-ordered waves (SuperPRD §5.3):
+- **Wave 1 (parallel, no blockers):** MP-1 Styles, MP-4 SkillCreateStyle, MP-6 RedTeamStyleAware
+- **Wave 2 (parallel, blocked-by MP-1):** MP-2 SchemaStyleField, MP-3 StyleInjection, MP-5 TestStyles
+- **Wave 3 (solo, blocked-by all):** MP-7 Hypergraph — done directly in the main thread (not
+  delegated) since it's the only step allowed to touch `architecture.yml`, avoiding concurrent-write
+  races across the fanned-out agents.
+
+### New Files
+- `ddo/styles/formal_professional.md`, `ddo/styles/conversational.md`,
+  `ddo/styles/technical_precise.md` — 5-section style profile contract (`Register & Audience`,
+  `Voice & Person`, `Sentence & Structure`, `Diction`, `Avoid`); zero content-bearing/quantitative
+  imperatives (RT-1/RT-2).
+- `ddo/skills/ddo-create-style.md` — interactive paced Q&A skill mirroring
+  `ddo-create-persona.md`; ships a phrasing/content/framing rejection rubric; cognitive overwrite
+  guard; no `ddo_core` dependency.
+- `tests/unit/test_styles.py` — glob-based structural validator mirroring `test_personas.py`;
+  `test_style_dir_has_files` dir-guard + negative-case parity (RT-9). 16 new tests.
+
+### Changed
+- `ddo/schemas/prd.yaml` / `ddo/schemas/scientific_report.yaml` — optional `meta.style_profile`
+  added immediately after `persona`, live defaults `formal_professional` / `technical_precise`
+  (landed atomically with the styles module per RT-6).
+- `ddo/skills/ddo-ingest.md` / `ddo/skills/ddo-interview.md` — identical style-injection block:
+  resolve → stem-validate (`^[a-z][a-z0-9_]*$`, re-validated on every read regardless of
+  provenance, RT-4) → Read once up front as untrusted phrasing-only guidance (RT-2) → scope to
+  `content.sections[*].body` only, never `evidence_bank[*]`/`meta.*` (RT-5) → sentinel-route
+  would-be fabrications via `[[DDO::REQUIRES_INPUT: ...]]` (RT-1) → echo resolved path at the
+  HITL gate (RT-7). Present-but-invalid (`""`/`null`/whitespace) hard-fails, never a no-op (RT-8).
+- `ddo/skills/ddo-red-team.md` — RT-3: `# Active Style: <stem>` (or `(none)`) header line +
+  aligned-pairing note, documentary only, no schema coupling. RT-10: closes the previously
+  deferred `meta.persona` traversal gap with the identical stem gate before any Read (supersedes
+  prior "A6" deferral).
+
+### Hypergraph (spec/compiled/architecture.yml)
+- **3 new nodes:** `ddo_styles` (Module), `skill_create_style` (Atomic, depends_on `ddo_styles`),
+  `test_styles_unit` (Atomic, depends_on `ddo_styles`) — all `needs_review`.
+- **4 modified nodes → `needs_review`:** `ddo_schemas`, `ddo_skills` (description now names the
+  concrete `ddo-ingest.md` diff since it has no dedicated Atomic node), `skill_interview`,
+  `skill_red_team`.
+- **`hypergraph_updater.py` run** for all 7 touched nodes; natural blast-radius propagation also
+  flagged `ddo_system`, `ddo_core`, `tests_unit`, `documents_output` as `needs_review` (legitimate
+  transitive consumers) — left as-is for audit.
+- **Reverted one propagation:** the script's BFS also flagged `test_render_determinism`
+  (a render/determinism test node), which the SuperPRD's negative-space explicitly lists as
+  "Explicitly NOT touched" — manually reverted back to `clean` after confirming MP-2/MP-3 are
+  fully render-invisible (full suite green, byte-identical).
+- Explicitly-forbidden nodes confirmed still `clean`: `skill_refine`, `refine_engine`,
+  `review_engine`, `validation_gate`, `build_orchestrator`, `ingest_helpers`, `path_deriver`,
+  and all render/determinism test nodes.
+
+### Verification
+- `uv run ruff check .` / `ruff format --check .` — both clean.
+- `uv run pytest` — 216 passed, 2 skipped (human-gated fixtures, expected), no regressions.
+- No Python module was touched (`validation.py`, `build.py`, `review.py`, `refine.py`,
+  `ingest.py`, `paths.py` all untouched) — v0.0.5 is cognitive-only per SuperPRD scope.
+
+### Audit (2026-06-30)
+- Fanned out 7 parallel subagents, one per MiniPRD (`Styles`, `SchemaStyleField`, `StyleInjection`,
+  `SkillCreateStyle`, `TestStyles`, `RedTeamStyleAware`, `Hypergraph`) for Phase 1 (Contract
+  Verification) + Phase 2 (Test Validation). All 7 returned `[VERIFICATION: PASSED]` — no punch
+  lists, no scope violations.
+- Phase 3 reconciliation delegated to a Haiku sub-agent per the `hyper-audit` skill: rewrote
+  `inputs`/`outputs`/`description` for all 12 `needs_review` nodes to match actual implementation
+  and flipped each to `clean`. `architecture.yml`: 35 nodes, 0 `needs_review`, no dupes, acyclic.
+- Phase 4: all 7 MiniPRDs moved to `spec/archive/` with `_AUDITED` suffix. `MiniPRD_Hypergraph.md`
+  renamed to `MiniPRD_Hypergraph_v005_AUDITED.md` to avoid colliding with an unrelated v0.0.2-era
+  archive file of the same base name.
+
+### Documentation Updated (v0.0.5)
+- `pyproject.toml` — version `0.0.3` → `0.0.5` (note: the v0.0.4 release had skipped this bump;
+  this pass also catches that up).
+- `CHANGELOG.md` — `## [0.0.5] - 2026-06-30` block added (Added/Changed sections; no Python
+  module touched, so no Fixed/Removed/Security entries).
+- `README.md` — badge v0.0.4 → v0.0.5; Directory Structure adds `ddo/styles/` +
+  `ddo-create-style.md`; Pipeline Workflow phases 1/3/4 note style resolution, register-aware
+  critique, and the persona stem gate; Schema Contract documents optional `style_profile`; Roadmap
+  gains a v0.0.5 section; test count 183 → 216 (199 unit + integration, 2 skipped).
+- `.agents/memory/activeContext.md` — this file.
+
+### Next Steps
+- Scientific report workflow tutorial (`tutorials/ddo-v001-scientific-report-workflow/`) remains
+  the only open roadmap item.
+
+## v0.0.4 Summary (superseded by v0.0.5 above as "Current Sprint")
 
 Structured Persona Nomenclature fully implemented, audited, and released. 183 tests passing.
 
@@ -86,6 +182,3 @@ Structured Persona Nomenclature fully implemented, audited, and released. 183 te
 - `tutorials/ddo-adversarial-loop-v0.0.2/tutorial.md` — comprehensive v0.0.3 update: new ops table, `DanglingRefError`, NC-13 whitelist, sequential-index warning, pre-validation note, 4 new troubleshooting rows, stale row fixed
 - `tutorials/ddo-adversarial-loop-v0.0.2/output_files/interview_log_v1.yaml` — F-004 migrated from `append_evidence` to `{op: append, target: "evidence_bank"}`
 - Both tutorials are now accurate against v0.0.3
-
-## Next Steps (v0.0.5+)
-- Scientific report workflow tutorial (`tutorials/ddo-v001-scientific-report-workflow/`)

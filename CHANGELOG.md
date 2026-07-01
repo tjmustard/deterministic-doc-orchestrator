@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.5] - 2026-06-30
+
+### Added
+- **`ddo/styles/` module**: New directory mirroring `ddo/personas/` — three built-in profiles: `formal_professional.md`, `conversational.md`, `technical_precise.md`. Each follows a 5-section free-prose contract (`Register & Audience`, `Voice & Person`, `Sentence & Structure`, `Diction`, `Avoid`); phrasing-only invariant enforced — zero content-bearing, quantitative, or instruction-channel imperatives (RT-1/RT-2).
+- **`ddo/skills/ddo-create-style.md`**: New skill for interactive style-profile authoring — paced Q&A loop (≤2 questions/turn) mirroring `ddo-create-persona.md`; slug validated against `^[a-z][a-z0-9_]*$` before any path use; ships a 3–5 example phrasing/content/ambiguous-framing rejection rubric; cognitive overwrite guard with literal-filename re-confirmation; `[WAITING FOR USER REVIEW]` gate before write. No `ddo_core` dependency.
+- **`tests/unit/test_styles.py`**: New glob-based structural validator for `ddo/styles/*.md`, mirroring `test_personas.py`. `test_style_dir_has_files` dir-guard prevents a vacuous pass on an empty directory (RT-9); parametrized assertions (title heading, five required `##` sections, non-empty bodies, sentinel-absence) over every discovered profile; negative-case parity (missing heading, empty body, sentinel present). 16 new tests; stdlib `re` only, no prose-content assertions.
+- **`meta.style_profile`** (optional): Added to `ddo/schemas/prd.yaml` (default `formal_professional`) and `ddo/schemas/scientific_report.yaml` (default `technical_precise`), placed immediately after `persona`. Render-invisible — ignored as an unknown key by `validation.py`; no Python change.
+
+### Changed
+- **`ddo/skills/ddo-ingest.md`** / **`ddo/skills/ddo-interview.md`**: Added an identical style-injection block. Resolves `style_profile` → stem-validates (`^[a-z][a-z0-9_]*$`, re-validated on every read regardless of provenance — a stored value is never trusted, RT-4) → reads the profile once up front as untrusted phrasing-only guidance (RT-2) → scopes it to `content.sections[*].body` only, never `evidence_bank[*]` or `meta.*` (RT-5) → routes any would-be fabrication to `[[DDO::REQUIRES_INPUT: ...]]` instead of inventing it (RT-1) → echoes the resolved profile path at the HITL gate (RT-7). A present-but-invalid value (`""`, `null`/`~`, whitespace) hard-fails identically to a missing file, never a silent no-op (RT-8); a truly absent field remains a clean no-op.
+- **`ddo/skills/ddo-red-team.md`**: RT-3 adds a `# Active Style: <stem>` (or `(none)`) header line alongside the persona AV-table echo, plus a documentary aligned-pairing note (e.g. `formal_professional` + `product_critic`) warning that a mismatched pair can oscillate the loop — no schema coupling. RT-10 closes the previously deferred `meta.persona` traversal gap: validates the persona stem against `^[a-z][a-z0-9_]*$` before any Read and hard-fails on a referenced-but-missing persona, identical to the `style_profile` gate — supersedes the prior "A6" deferral.
+- **`spec/compiled/architecture.yml`**: 3 new nodes (`ddo_styles`, `skill_create_style`, `test_styles_unit`); 4 directly modified nodes (`ddo_schemas`, `ddo_skills`, `skill_interview`, `skill_red_team`) plus legitimate transitive blast radius (`ddo_system`, `ddo_core`, `tests_unit`, `tests_integration`, `documents_output`) reconciled from `needs_review` to `clean`, with `inputs`/`outputs`/`description` rewritten to match the actual implementation. 35 total nodes, all `clean`.
+- **Test suite**: 199 unit tests passing (was 183 in v0.0.4).
+
 ## [0.0.4] - 2026-06-30
 
 ### Added

@@ -69,15 +69,32 @@ version = report_version(doc_dir)  # max(existing N) + 1; 1 if none exist
 
 ```python
 import yaml
-# Load document_data.yaml to read meta.persona if available
-meta_persona = yaml.safe_load((doc_dir / "document_data.yaml").read_text())
-                 .get("meta", {}).get("persona")
+# Load document_data.yaml to read meta.persona / meta.style_profile if available
+meta = yaml.safe_load((doc_dir / "document_data.yaml").read_text()).get("meta", {})
+meta_persona = meta.get("persona")
+meta_style_profile = meta.get("style_profile")
 ```
 
 Resolution order:
 1. Explicit `persona` argument → load `ddo/personas/<persona>.md`.
 2. `meta.persona` from `document_data.yaml` → load `ddo/personas/<value>.md`.
 3. Neither → prompt the user to select a persona explicitly.
+
+**Stem validation gate (RT-10):** Before Reading `ddo/personas/<stem>.md` from *either*
+source above, validate the stem against `^[a-z][a-z0-9_]*$` — reject any value containing
+`.`, `/`, or `..`.  Treat a **stored** `meta.persona` value as untrusted: re-validate on
+every read, not only when `persona` is an explicit argument; never skip the gate because the
+value "already exists" in `meta`.  A stem that fails the pattern is a hard failure (name the
+invalid value; refuse to read anything):
+
+```
+Error: persona 'value' is not a valid persona stem (must match ^[a-z][a-z0-9_]*$).
+Refusing to resolve a path outside ddo/personas/.
+```
+
+> **Note (supersedes A6):** a prior deferral of this exact gap — tracked in the project as
+> "A6" — is **superseded** by this v0.0.5 hardening (RT-10).  Both the `persona` and
+> `style_profile` file-resolution sinks are now validated identically before any Read.
 
 **Hard failure:** if the resolved persona name points to a file that does not
 exist, raise a named error:
@@ -100,14 +117,33 @@ Red Team requires a structured AV table to enforce the AV-NN category contract.
 Add an '## Attack Vectors' section to the persona before running Red Team.
 ```
 
-**Echo AV table into report context:** Once the persona file is confirmed to
-have a `## Attack Vectors` table, extract that table in full and embed it in
-the report header comment block so that every `AV-NN: <name>` reference in the
-findings is self-documenting for both AI agents and human auditors — without
-requiring the reviewer to open the persona file:
+**Also resolve the style profile (RT-3, documentary only):** independently of the persona
+resolution above, read `meta.style_profile` from `document_data.yaml` if present and capture
+its filename **stem** (e.g. `formal_professional`).  This skill does not accept a
+`style_profile` argument and does not validate or Read `ddo/styles/<stem>.md` — the critique
+targets the style-invisible MD/HTML render, and machine-parsing the style profile's contents
+here would couple persona and style outside the schema.  The header below shows only the
+resolved stem, never parsed style rules.  If `meta.style_profile` is absent, the header
+records `(none)`.
+
+> **Recommended pairings:** align `style_profile` with `persona` so the critique's register
+> expectations match the render's intended register — e.g. `formal_professional` +
+> `product_critic`, or `technical_precise` + `scientific_reviewer`.  A mismatched pairing
+> (e.g. a terse `technical_precise` render critiqued under a discursive persona) can make the
+> adversarial loop oscillate: Red Team flags a register mismatch, Interview "fixes" it, and
+> the next pass flags the opposite, so revisions never converge.  This is a documentary
+> recommendation only — persona and style are never coupled in schema or validation.
+
+**Echo AV table and active style into report context:** Once the persona file is confirmed
+to have a `## Attack Vectors` table, extract that table in full and embed it — together with
+the resolved persona name and style stem — in the report header comment block so that every
+`AV-NN: <name>` reference in the findings is self-documenting, and the critique is
+register-aware, for both AI agents and human auditors — without requiring the reviewer to
+open the persona or style files:
 
 ```yaml
 # --- Active Persona: <persona_name> ---
+# Active Style: <style_stem>
 # Attack Vectors:
 # <paste the full ## Attack Vectors table here, verbatim>
 # ---------------------------------------
@@ -116,6 +152,8 @@ meta:
   persona: <persona_name>
   ...
 ```
+
+If no `meta.style_profile` is present, render `# Active Style: (none)`.
 
 ### 4. Read the Render
 
@@ -190,6 +228,12 @@ Report:
 - **DO NOT** re-implement report writing or view generation — delegate to
   `ddo.review.write_report`.
 - **DO NOT** silently fall back when `meta.persona` names a missing file.
+- **DO NOT** Read `ddo/personas/<stem>.md` before validating the stem against
+  `^[a-z][a-z0-9_]*$` — treat a stored `meta.persona` as untrusted and re-validate on every
+  read, not only on an explicit `persona` argument (RT-10).
+- **DO NOT** Read or machine-parse `ddo/styles/<stem>.md` in this skill, and **DO NOT** couple
+  persona↔style in schema or validation — the report header surfaces only the resolved
+  `style_profile` stem (or `(none)`), never parsed style rules (RT-3).
 - **DO NOT** set `decision_recorded`, `applied`, or `resolution` to anything
   other than `false`, `false`, `null` at emit time.
 - **DO NOT** auto-advance past `[WAITING FOR USER REVIEW]`.

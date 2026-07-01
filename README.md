@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-    <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/releases/latest"><img src="https://img.shields.io/badge/release-v0.0.4-blue" alt="Latest Release"/></a>
+    <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/releases/latest"><img src="https://img.shields.io/badge/release-v0.0.5-blue" alt="Latest Release"/></a>
     <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/stargazers"><img src="https://img.shields.io/github/stars/tjmustard/deterministic-doc-orchestrator?style=social" alt="GitHub stars"/></a>
     <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/blob/main/LICENSE"><img src="https://img.shields.io/github/license/tjmustard/deterministic-doc-orchestrator" alt="License"/></a>
 </p>
@@ -93,8 +93,9 @@ ddo/
 ├── schemas/          # YAML schema contracts (prd.yaml, scientific_report.yaml)
 ├── templates/        # Typst (.typst) and Jinja2 (.jinja2) rendering templates
 ├── personas/         # Adversarial review lenses (product_critic, scientific_reviewer) — each with AV-NN Attack Vector tables
+├── styles/           # Style/tone profiles (formal_professional, conversational, technical_precise) — phrasing-only register anchors
 ├── fonts/            # Bundled DejaVu fonts (hermetic — no system fonts required)
-└── skills/           # ddo-ingest.md, ddo-render.md, ddo-red-team.md, ddo-interview.md, ddo-refine.md, ddo-create-persona.md
+└── skills/           # ddo-ingest.md, ddo-render.md, ddo-red-team.md, ddo-interview.md, ddo-refine.md, ddo-create-persona.md, ddo-create-style.md
 
 scripts/              # fixture_signoff_guard.py — pre-commit/CI guard for fixture promotion
 tests/
@@ -103,7 +104,7 @@ tests/
 ├── fixtures/         # Human-promoted golden regression baselines (DDO_FIXTURE_SIGNOFF=1)
 └── data/             # Test input YAML files (example documents)
 
-spec/compiled/        # Ground truth: architecture.yml, SuperPRD.md, SuperPRD_v0.0.2_AdversarialLoop.md, SuperPRD_v0.0.4_StructuredPersonaNomenclature.md
+spec/compiled/        # Ground truth: architecture.yml, SuperPRD.md (baseline), plus one versioned SuperPRD_vX.Y.Z_*.md per released feature
 tutorials/            # Step-by-step workflow tutorials (ddo-v001-prd-workflow/, ddo-adversarial-loop-v0.0.2/, ...)
 Documents/            # Generated output — gitignored; YYYY.MM.DD_DocType_Title/ structure
 .agents/              # HACF framework toolchain (skills, schemas, rules, scripts, memory)
@@ -116,10 +117,11 @@ The DDO pipeline is strictly sequential. Each phase produces a verifiable artifa
 
 ### Phase 1: Ingest (`ddo-ingest`)
 1. Read all provided source materials (documents, URLs, notes).
-2. Map extracted facts to the target YAML schema.
-3. Mark any unverifiable field as `[REQUIRES USER INPUT: <reason>]` — never invent values.
-4. Write the result to `<output_dir>/document_data.yaml`.
-5. Present a summary of populated vs. missing fields.
+2. Resolve `meta.style_profile` (schema default or explicit override), stem-validate it (`^[a-z][a-z0-9_]*$`, hard-fail on a referenced-but-missing profile), and read `ddo/styles/<stem>.md` once as untrusted phrasing-only guidance before authoring any prose. An absent field is a no-op; a present-but-invalid value hard-fails.
+3. Map extracted facts to the target YAML schema.
+4. Mark any unverifiable field as `[REQUIRES USER INPUT: <reason>]` — never invent values. A directive that would require inventing a fact is likewise routed to a sentinel, never fabricated to match the style.
+5. Write the result to `<output_dir>/document_data.yaml`.
+6. Present a summary of populated vs. missing fields, including the resolved style profile path.
 
 **`[WAITING FOR USER REVIEW]`** — User fills missing fields and approves before proceeding.
 
@@ -135,15 +137,16 @@ The DDO pipeline is strictly sequential. Each phase produces a verifiable artifa
 > **Fresh context required.** Run in a new conversation that has not seen the authoring or render phases.
 
 1. Check for a torn prior pass; halt if one is detected.
-2. The assigned persona reads the rendered Markdown or HTML (never the PDF).
-3. Echoes the persona's `## Attack Vectors` table into report context; hard-fails if the table is absent. Applies the attack-vector taxonomy — each finding's `category` is bound to the persona's exact `AV-NN: <name>` string. Every finding receives a fixed-enum severity: `Critical`, `Major`, or `Minor`.
+2. Resolves `meta.persona` and stem-validates it (`^[a-z][a-z0-9_]*$`, hard-fail on a referenced-but-missing persona — identical to the style-profile gate) before Reading it. The assigned persona reads the rendered Markdown or HTML (never the PDF).
+3. Echoes the persona's `## Attack Vectors` table into report context; hard-fails if the table is absent. Applies the attack-vector taxonomy — each finding's `category` is bound to the persona's exact `AV-NN: <name>` string. Every finding receives a fixed-enum severity: `Critical`, `Major`, or `Minor`. The report header also surfaces the active `meta.style_profile` (or `(none)`) alongside the persona, so the critique stays register-aware.
 4. Writes `red_team_report_vN.yaml` and a deterministic human-readable `red_team_view_vN.md` via `ddo.review`.
 
 **`[WAITING FOR USER REVIEW]`** — User reviews the critique before proceeding to interview.
 
 ### Phase 4: Interview (`ddo-interview`)
+0. Resolves and stem-validates `meta.style_profile` (identical gate to `ddo-ingest`) before drafting any `revise` prose. A stored value is re-validated on every read, never trusted as-is.
 1. Load the machine-readable `red_team_report_vN.yaml`; filter to `applied: false` findings; sort Critical → Major → Minor.
-2. Present findings in batches of 2 per turn; the user assigns a decision to each: `revise`, `add_evidence`, `acknowledge`, `dispute`, or `defer`.
+2. Present findings in batches of 2 per turn; the user assigns a decision to each: `revise`, `add_evidence`, `acknowledge`, `dispute`, or `defer`. `revise` patch prose is bounded to the resolved style profile (phrasing only); an `add_evidence` patch's `content`/`source` are copied verbatim, never restyled.
 3. Write resolutions to `interview_log_vN.yaml`; mark the `decision_recorded` flag on each resolved finding.
 
 **`[WAITING FOR USER REVIEW]`** — User reviews the interview log before mutations are applied.
@@ -160,7 +163,7 @@ The DDO pipeline is strictly sequential. Each phase produces a verifiable artifa
 
 Every `document_data.yaml` must satisfy the DDO minimal contract:
 
-1. A **`meta` block** with the following fields: `doc_type`, `title`, `version`, `date`, `persona`, `template`, `output_formats`.
+1. A **`meta` block** with the following fields: `doc_type`, `title`, `version`, `date`, `persona`, `template`, `output_formats`. An optional `style_profile` field is also recognized (see below).
 2. An **`evidence_bank` array** — every claim referenced in `content.sections[*].evidence` must have a corresponding ID entry here.
 
 ```yaml
@@ -170,6 +173,7 @@ meta:
   version: "1.0"
   date: "2026.06.29"          # dotted date format
   persona: scientific_reviewer  # optional — used by Red Team phase
+  style_profile: technical_precise  # optional — anchors prose register; resolves to ddo/styles/<stem>.md
   template: scientific_report
   output_formats: [pdf, html, md]
 
@@ -184,6 +188,8 @@ content:
       body: "..."
       evidence: [ev-001]
 ```
+
+`style_profile` is render-invisible (an ignored unknown key to `validation.py`) and only consulted by `ddo-ingest`/`ddo-interview` when authoring prose. Absent ⇒ clean no-op. A present-but-invalid value (empty, `null`, whitespace, or a stem that doesn't resolve to an existing `ddo/styles/<stem>.md`) hard-fails rather than silently no-op-ing. `prd.yaml` and `scientific_report.yaml` ship live defaults of `formal_professional` and `technical_precise` respectively.
 
 See `ddo/schemas/prd.yaml` and `ddo/schemas/scientific_report.yaml` for the full canonical schemas.
 
@@ -230,7 +236,7 @@ See `ddo/schemas/prd.yaml` and `ddo/schemas/scientific_report.yaml` for the full
   - [x] Product Critic
   - [x] Scientific Reviewer (actively exercised in v0.0.2 adversarial loop)
 - [x] Test Suite
-  - [x] 183 tests passing (unit + integration)
+  - [x] 216 tests passing, 2 skipped pending human sign-off (unit + integration)
   - [x] Golden regression baselines with human sign-off guard
 - [x] Tutorials
   - [x] PRD YAML workflow tutorial (`tutorials/ddo-v001-prd-workflow/`)
@@ -248,6 +254,13 @@ See `ddo/schemas/prd.yaml` and `ddo/schemas/scientific_report.yaml` for the full
   - [x] `ddo-create-persona` skill — interactive guided authoring for new personas
   - [x] `tests/unit/test_personas.py` rewritten as glob-based AV-table validator
   - [x] `append_evidence` and `append_review_log` ops removed (`ddo/refine.py`, `ddo/review.py`)
+- [x] Style and Tone Configuration (v0.0.5)
+  - [x] `ddo/styles/` module — `formal_professional`, `conversational`, `technical_precise` profiles (5-section phrasing-only contract, mirrors `ddo/personas/`)
+  - [x] `ddo-create-style` skill — interactive guided authoring, mirrors `ddo-create-persona`
+  - [x] Optional `meta.style_profile` schema field (`prd.yaml`, `scientific_report.yaml`) with live defaults; render-invisible
+  - [x] `ddo-ingest` / `ddo-interview` style injection — stem-validated, untrusted phrasing-only guidance, body-scoped, sentinel-routed on would-be fabrication
+  - [x] `ddo-red-team` register-aware critique — active style surfaced in report header; persona stem-validation gap closed
+  - [x] `tests/unit/test_styles.py` glob-based structural validator with negative-case parity
 - [ ] Scientific report workflow tutorial
 
 ## 🤝 Support
