@@ -1,6 +1,6 @@
 [project]
 name = "deterministic-doc-orchestrator"
-version = "0.0.5"
+version = "0.0.6"
 requires-python = ">=3.10"
 dependencies = []
 
@@ -24,6 +24,8 @@ quote-style = "double"
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+markers = ["slow: full determinism cross-product (CI only)"]
+addopts = "-m 'not slow'"
 
 [dependency-groups]
 dev = [

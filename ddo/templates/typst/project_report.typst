@@ -1,0 +1,65 @@
+// Template: Project Status Report
+// Consumes: DDO project_report.yaml schema
+
+#let data_file = sys.inputs.at("data_file", default: "document_data.yaml")
+#let data = yaml(data_file)
+
+// Document Setup
+#set document(title: data.meta.title, author: data.meta.authors)
+#set page(
+  paper: "us-letter",
+  margin: (x: 1in, y: 1in),
+  header: align(right)[
+    #text(8pt, fill: luma(120))[
+      #data.meta.title | v#data.meta.version | Status: #upper(data.meta.status)
+    ]
+  ],
+  numbering: "1 / 1"
+)
+#set text(font: "DejaVu Sans", size: 10pt, fill: luma(30))
+#set heading(numbering: none)
+#show heading: set text(fill: black)
+
+// Title Block
+#align(center)[
+  #block(text(weight: 700, 1.75em, data.meta.title))
+  #v(1em)
+  *Project Status Report* \
+  #v(0.5em)
+  #text(size: 9pt, fill: luma(80))[
+    *Version:* #data.meta.version | *Date:* #data.meta.date \
+    *Authors:* #data.meta.authors.join(", ")
+  ]
+]
+#v(2em)
+#line(length: 100%, stroke: 0.5pt + luma(200))
+#v(2em)
+
+// Content Sections
+#for section in data.content.sections [
+  #heading(level: 1, section.title)
+  #v(0.5em)
+  #block(section.body)
+  #v(1.5em)
+]
+
+// Evidence Bank Appendix
+#if "evidence_bank" in data and data.evidence_bank.len() > 0 [
+  #pagebreak(weak: true)
+  #heading(level: 1, "Appendix: Evidence Bank")
+  #v(1em)
+  #for item in data.evidence_bank [
+    #block(
+      fill: luma(245),
+      inset: 10pt,
+      radius: 4pt,
+      width: 100%,
+      [
+        *ID:* `#item.id` (#item.type) \
+        *Source:* #item.source \
+        *Content:* #item.content
+      ]
+    )
+    #v(0.5em)
+  ]
+]

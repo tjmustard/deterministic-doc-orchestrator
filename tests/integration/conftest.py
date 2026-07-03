@@ -17,6 +17,10 @@ import pytest
 EXAMPLES = [
     ("prd", "prd_example.yaml"),
     ("scientific_report", "scientific_report_example.yaml"),
+    ("blog_post", "blog_post_example.yaml"),
+    ("meeting_notes", "meeting_notes_example.yaml"),
+    ("meeting_agenda", "meeting_agenda_example.yaml"),
+    ("project_report", "project_report_example.yaml"),
 ]
 
 

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ meta.title }} - Meeting Notes</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            border-bottom: 1px solid #eaeaea;
+            padding-bottom: 2rem;
+        }
+        h1 { color: #111; margin-bottom: 0.5rem; }
+        h2 { color: #222; margin-top: 2.5rem; border-bottom: 1px solid #eaeaea; padding-bottom: 0.3rem; }
+        .meta-info { color: #666; font-size: 0.9rem; }
+        .evidence-card {
+            background: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .evidence-card strong { color: #555; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>{{ meta.title }}</h1>
+    <div class="meta-info">
+        <strong>Meeting Notes</strong><br>
+        Version: {{ meta.version }} | Date: {{ meta.date }} | Status: {{ meta.status | upper }}<br>
+        Authors: {{ meta.authors | join(', ') }}
+    </div>
+</header>
+
+<main>
+    {% for section in content.sections %}
+    <section id="{{ section.id }}">
+        <h2>{{ section.title }}</h2>
+        <div>
+            {{ section.body | replace('\n', '<br>') }}
+        </div>
+    </section>
+    {% endfor %}
+</main>
+
+{% if evidence_bank and evidence_bank | length > 0 %}
+<footer>
+    <h2 id="evidence-bank">Appendix: Evidence Bank</h2>
+    {% for item in evidence_bank %}
+    <div class="evidence-card">
+        <strong>ID:</strong> <code>{{ item.id }}</code> ({{ item.type }})<br>
+        <strong>Source:</strong> {{ item.source }}<br>
+        <strong>Content:</strong> {{ item.content }}
+    </div>
+    {% endfor %}
+</footer>
+{% endif %}
+
+</body>
+</html>

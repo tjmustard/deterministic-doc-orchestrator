@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6] - 2026-07-02
+
+### Added
+- **Four new document types**, each a complete self-contained worked example (schema + 3 templates + example YAML + narrative source doc + dedicated persona + dedicated style):
+  - **`blog_post`**: `ddo/schemas/blog_post.yaml`; persona `ddo/personas/content_editor.md`; style `ddo/styles/blog_casual.md`; templates `ddo/templates/{typst/blog_post.typst,jinja2/blog_post.html.jinja2,jinja2/blog_post.md.jinja2}`; example `tests/data/blog_post_example.yaml`.
+  - **`meeting_notes`**: `ddo/schemas/meeting_notes.yaml`; persona `ddo/personas/meeting_recorder.md`; style `ddo/styles/notes_concise.md`; templates `ddo/templates/{typst/meeting_notes.typst,jinja2/meeting_notes.html.jinja2,jinja2/meeting_notes.md.jinja2}`; example `tests/data/meeting_notes_example.yaml` (carries a deliberate non-ASCII attendee name to exercise Typst font coverage, RT-12).
+  - **`meeting_agenda`**: `ddo/schemas/meeting_agenda.yaml`; persona `ddo/personas/meeting_facilitator.md`; style `ddo/styles/agenda_directive.md`; templates `ddo/templates/{typst/meeting_agenda.typst,jinja2/meeting_agenda.html.jinja2,jinja2/meeting_agenda.md.jinja2}`; example `tests/data/meeting_agenda_example.yaml` (time-boxed agenda entries are opaque string literals — no computed durations, RT-09).
+  - **`project_report`**: `ddo/schemas/project_report.yaml`; persona `ddo/personas/project_stakeholder.md`; style `ddo/styles/executive_formal.md`; templates `ddo/templates/{typst/project_report.typst,jinja2/project_report.html.jinja2,jinja2/project_report.md.jinja2}`; example `tests/data/project_report_example.yaml`.
+- **Three new tutorials** under `tutorials/`, each following the existing `tutorial.md` + `input_files/` + `output_files/` + `code_samples/` + `screenshots/` convention:
+  - **`tutorials/ddo-v006-evidence-bank-workflow/`**: citation-integrity lens over the human-promoted `tests/fixtures/ingest_output.yaml`; zero `ddo-refine`/`ddo-interview` invocations — explicitly not a second adversarial-loop walkthrough.
+  - **`tutorials/ddo-v006-authoring-custom-structures/`**: walks `blog_post` from schema to rendered document from scratch, then presents `meeting_notes`, `meeting_agenda`, and `project_report` as worked examples; `code_samples/render_commands.sh` renders all four types to HTML/MD via `build.py`.
+  - **`tutorials/ddo-v006-writing-structured-personas/`**: walks the v0.0.4 AV-table persona format and the `ddo-create-persona` skill end-to-end, using the four new personas as specimens.
+- **`tests/unit/test_tutorial_refs.py`**: New anti-rot guard for `tutorials/`. Walks every `tutorials/*/input_files/*.yaml`, requires each to appear in an explicit `EXPECTED_MIRRORS` map (source in `tests/data/` or `tests/fixtures/`) or the `STANDALONE` set, and asserts byte-for-byte equality against the mapped source — a drifted/renamed fixture fails loudly rather than passing vacuously. A second `OUTPUT_RENDERS` guard (`@pytest.mark.slow`) re-renders each tutorial's `output_files/*.{html,md}` via `build.py` and asserts byte-equality against the committed copy; PDF is explicitly excluded from this guard. 26 new tests.
+- **`tests/integration/test_schema_meta_refs.py`**: New CI guard asserting every `ddo/schemas/*.yaml` and every `tests/data/*.yaml` example's `meta.persona`/`meta.style_profile` resolves (via the `^[a-z][a-z0-9_]*$` stem gate) to a real file in `ddo/personas/`/`ddo/styles/`, plus a soft schema-conformance check that each example's `content.sections[*].id` is a subset of its schema's declared section ids.
+- **`slow` pytest marker** (`pyproject.toml`): `markers = ["slow: full determinism cross-product (CI only)"]`, `addopts = "-m 'not slow'"`. The `pdf`/`html` legs of `test_examples_render_all_formats` (M1) are marked `slow`; `md` remains in the default fast subset — bounds default `pytest` runtime as `EXAMPLES` grows 2 → 6.
+- **`tutorials`** (Module) and **`test_tutorial_refs_unit`** (Atomic) nodes registered in `spec/compiled/architecture.yml`.
+
+### Changed
+- **`ddo/build.py`**: `--template` CLI `choices` extended with `blog_post`, `meeting_notes`, `meeting_agenda`, `project_report` (no render/validate logic changed).
+- **`tests/integration/conftest.py`**: `EXAMPLES` extended with the four new (template, basename) pairs — now the single source of truth.
+- **`tests/integration/test_render_determinism.py`**: Duplicate local `EXAMPLES` literal removed in favor of `from .conftest import EXAMPLES`; `test_examples_render_all_formats`'s `fmt` parametrization split into `slow`-marked (`pdf`, `html`) and default (`md`) cases.
+- **`pyproject.toml`**: Version bumped `0.0.5` → `0.0.6`.
+- **`spec/compiled/architecture.yml`**: `tutorials` and `test_tutorial_refs_unit` added; `ddo_schemas`, `ddo_templates`, `ddo_personas`, `ddo_styles`, `render_fixture`, `tests_integration`, `test_render_determinism` marked `dirty` (directly modified — four new document types + harness prep). 11 nodes reconciled from `needs_review` to `clean` via `/hyper-audit`'s Haiku sub-agent (`ddo_system`, `ddo_core`, `ddo_skills`, `documents_output`, `test_ingest_contract`, `skill_red_team`, `test_personas_unit`, `test_loop_integration`, `skill_create_persona`, `skill_create_style`, `test_styles_unit`), with `inputs`/`outputs`/`description` rewritten to match actual implementation.
+- **Test suite**: 348 tests collected (324 passed + 4 skipped in the default fast subset, 20 more under `-m slow`); was 216 in v0.0.5.
+
 ## [0.0.5] - 2026-06-30
 
 ### Added

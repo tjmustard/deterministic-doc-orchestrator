@@ -1,0 +1,61 @@
+# Schema: Meeting Agenda
+# Enforces the DDO Minimal Contract (meta + evidence_bank)
+
+meta:
+  doc_type: "meeting_agenda"
+  title: "[REQUIRES USER INPUT]"
+  version: "0.1.0"
+  date: "[REQUIRES USER INPUT: ISO-8601]"
+  authors: []
+  status: "draft"
+  persona: "meeting_facilitator"
+  # Optional. Absent => no-op (no style anchoring). Present-but-invalid ("" / null /
+  # whitespace-only) => hard-fail. Resolves to ddo/styles/<stem>.md; <stem> must match
+  # ^[a-z][a-z0-9_]*$.
+  style_profile: "agenda_directive"
+  output_formats: ["pdf", "html", "md"]
+  template: "meeting_agenda"
+  review_log: [] # Populated by ddo-refine
+
+content:
+  sections:
+    - id: "meeting_objective"
+      title: "Meeting Objective"
+      body: "[REQUIRES USER INPUT: One or two sentences naming the single decision or outcome this meeting exists to produce.]"
+      claims: []
+      evidence: [] # IDs mapping to evidence_bank
+
+    - id: "agenda_items"
+      title: "Agenda"
+      body: "[REQUIRES USER INPUT: Optional short framing sentence introducing the agenda as a whole.]"
+      claims: []
+      evidence: []
+      # Each entry is a literal, opaque time-box string plus a topic and a single
+      # named owner. `time_box` is rendered verbatim by every template -- never
+      # parsed, summed, reformatted, or used to compute a duration. Named
+      # `entries` (not `items`) so Jinja2 attribute access never resolves to
+      # `dict.items()` instead of this field.
+      entries:
+        - time_box: "[REQUIRES USER INPUT: e.g. '0:00-0:10']"
+          topic: "[REQUIRES USER INPUT]"
+          owner: "[REQUIRES USER INPUT: a named individual, not a team]"
+
+    - id: "pre_reads"
+      title: "Pre-Reads"
+      body: "[REQUIRES USER INPUT: List the documents attendees must read beforehand, and why each one matters.]"
+      claims: []
+      evidence: []
+
+    - id: "logistics"
+      title: "Logistics"
+      body: "[REQUIRES USER INPUT: Date, start time, location or dial-in link, and any other detail an attendee needs to show up.]"
+      claims: []
+      evidence: []
+
+evidence_bank:
+  # Example node structure:
+  # - id: "stakeholder_email_thread"
+  #   type: "correspondence"
+  #   content: "The steering group asked for a go/no-go decision on the vendor
+  #     migration before end of quarter."
+  #   source: "Email thread 'Vendor migration decision', 2026.06.20."

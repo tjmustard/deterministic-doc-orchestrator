@@ -1,0 +1,57 @@
+# Schema: Meeting Notes
+# Enforces the DDO Minimal Contract (meta + evidence_bank)
+
+meta:
+  doc_type: "meeting_notes"
+  title: "[REQUIRES USER INPUT]"
+  version: "0.1.0"
+  date: "[REQUIRES USER INPUT: ISO-8601]"
+  authors: []
+  status: "draft"
+  persona: "meeting_recorder"
+  # Optional. Absent => no-op (no style anchoring). Present-but-invalid ("" / null /
+  # whitespace-only) => hard-fail. Resolves to ddo/styles/<stem>.md; <stem> must match
+  # ^[a-z][a-z0-9_]*$.
+  style_profile: "notes_concise"
+  output_formats: ["pdf", "html", "md"]
+  template: "meeting_notes"
+  review_log: [] # Populated by ddo-refine
+
+content:
+  sections:
+    - id: "attendees"
+      title: "Attendees"
+      body: "[REQUIRES USER INPUT]"
+      claims: []
+      evidence: [] # IDs mapping to evidence_bank
+
+    - id: "agenda_covered"
+      title: "Agenda Covered"
+      body: "[REQUIRES USER INPUT]"
+      claims: []
+      evidence: []
+
+    - id: "decisions"
+      title: "Decisions"
+      body: "[REQUIRES USER INPUT]"
+      claims: []
+      evidence: []
+
+    - id: "action_items"
+      title: "Action Items"
+      body: "[REQUIRES USER INPUT: Format as '[Owner] — [Action] — [Due/trigger, if stated].']"
+      claims: []
+      evidence: []
+
+    - id: "next_steps"
+      title: "Next Steps"
+      body: "[REQUIRES USER INPUT]"
+      claims: []
+      evidence: []
+
+evidence_bank:
+  # Example node structure:
+  # - id: "meeting_notes_source_2026_06_15"
+  #   type: "transcript"
+  #   content: "Raw notes captured during the 2026.06.15 sync."
+  #   source: "tutorials/ddo-v006-authoring-custom-structures/input_files/meeting_notes_source.md"

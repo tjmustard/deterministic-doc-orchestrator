@@ -1,0 +1,127 @@
+# Example project_report document_data.yaml — test INPUT (not a human-gated fixture).
+# Satisfies the DDO minimal contract and passes ddo.validation.validate().
+# Traces to tutorials/ddo-v006-authoring-custom-structures/input_files/project_report_source.md
+meta:
+  doc_type: "project_report"
+  title: "Atlas Platform Migration — Status Report"
+  version: "0.1.0"
+  date: "2026.06.28"
+  authors:
+    - "Priya Nandakumar, Program Lead"
+  status: "draft"
+  persona: "project_stakeholder"
+  style_profile: "executive_formal"
+  output_formats: ["pdf", "html", "md"]
+  template: "project_report"
+
+content:
+  sections:
+    - id: "executive_summary"
+      title: "1. Executive Summary"
+      body: >-
+        The Atlas Platform Migration is on track for a late-July cutover, with four of
+        five milestones closed or in progress and zero write divergences detected during
+        eighteen days of dual-write operation. We recommend the steering group escalate
+        the outstanding vendor SLA countersignature to legal leadership this week; if it
+        slips past 2026.07.10, the July maintenance window is lost and cutover moves to
+        September.
+      claims:
+        - "Four of five milestones are closed or in progress as of 2026.06.28."
+        - "The vendor SLA countersignature is the single item that could force a slip from July to September."
+      evidence: ["milestone_board_export", "sync_notes_20260628"]
+
+    - id: "status"
+      title: "2. Status"
+      body: >-
+        Overall status: at-risk. Migration engineering work (schema parity, dual-write,
+        dry run) is complete and performing within target windows. The cutover rehearsal
+        is in progress with three of five steps passed. The single open risk with
+        schedule impact is the unsigned vendor support SLA, not engineering readiness.
+      claims:
+        - "Engineering workstreams (Milestones 1-3) are complete and within target."
+      evidence: ["milestone_board_export"]
+
+    - id: "milestones"
+      title: "3. Milestones"
+      body: >-
+        Milestone 1, Schema parity audit: done, closed 2026.05.30, 42 of 42 tables
+        mapped, 0 open discrepancies. Milestone 2, Dual-write shim in production: done,
+        closed 2026.06.10, 0 write divergences across 18 days. Milestone 3, Data
+        migration dry run: done, closed 2026.06.15, 2.3 TB migrated in 6h40m against an
+        8-hour target. Milestone 4, Production cutover rehearsal: at-risk, 3 of 5 steps
+        complete as of 2026.06.28, remaining steps scheduled the week of 2026.07.06.
+        Milestone 5, Legacy datastore decommission: blocked, not started, blocked on
+        Milestone 4 completion.
+      claims: []
+      evidence: ["milestone_board_export"]
+
+    - id: "risks"
+      title: "4. Risks"
+      body: >-
+        R-1: The managed Postgres vendor's go-live weekend support SLA has not been
+        countersigned; legal review flagged a 2-week delay on 2026.06.20. Owner: Marcus
+        Webb. R-2: The live traffic shadow test requires a second on-call engineer
+        currently committed to an unrelated incident-response rotation through
+        2026.07.03. Owner: Priya Nandakumar. R-3: The rollback drill took 22 minutes
+        against a 15-minute target and the runbook has not yet been updated to close the
+        gap. Owner: David Chen.
+      claims: []
+      evidence: ["risk_log_20260628"]
+
+    - id: "metrics"
+      title: "5. Metrics"
+      body: >-
+        Write-divergence count: 0 across 18 days of dual-write (2026.06.10 -
+        2026.06.28). Dry-run migration duration: 6 hours 40 minutes for 2.3 TB against an
+        8-hour target window. Migration-attributable on-call incidents this window: 1
+        (read-replica lag alert, 2026.06.22, resolved in 40 minutes, no customer
+        impact). Rehearsal drill pass rate: 3 of 3 completed steps passed acceptance
+        criteria on first attempt.
+      claims: []
+      evidence: ["metrics_dashboard_export"]
+
+    - id: "next_steps"
+      title: "6. Next Steps"
+      body: >-
+        Marcus Webb to escalate the vendor SLA countersignature to legal leadership this
+        week, target resolution by 2026.07.10. David Chen to update the rollback runbook
+        to close the 22-minute-versus-15-minute gap before the shadow test proceeds.
+        Priya Nandakumar to resolve the on-call engineer allocation conflict before the
+        live traffic shadow test, scheduled the week of 2026.07.06.
+      claims: []
+      evidence: ["sync_notes_20260628"]
+
+evidence_bank:
+  - id: "milestone_board_export"
+    type: "status_update"
+    content: >-
+      Milestone board export, 2026.06.28: Milestones 1-3 closed (schema parity audit,
+      dual-write shim, data migration dry run); Milestone 4 (cutover rehearsal) 3 of 5
+      steps complete; Milestone 5 (decommission) not started, blocked on Milestone 4.
+    source: "Atlas Platform Migration status notes, tracking board export 2026.06.28."
+  - id: "metrics_dashboard_export"
+    type: "data"
+    content: >-
+      Metrics dashboard export, 2026.06.28: 0 write divergences across 18 days of
+      dual-write; dry-run migrated 2.3 TB in 6h40m against an 8-hour target; 1
+      migration-attributable on-call incident (40 minute resolution); 3 of 3 completed
+      rehearsal steps passed on first attempt.
+    source: "Atlas Platform Migration on-call metrics dashboard, 2026.06.28."
+  - id: "risk_log_20260628"
+    type: "status_update"
+    content: >-
+      Open risk log, 2026.06.28: R-1 vendor SLA countersignature delayed by legal review
+      (flagged 2026.06.20); R-2 shadow-test on-call engineer allocated to an unrelated
+      rotation through 2026.07.03; R-3 rollback drill took 22 minutes against a
+      15-minute target.
+    source: "Atlas Platform Migration status notes, tracking board export 2026.06.28."
+  - id: "sync_notes_20260628"
+    type: "interview"
+    content: >-
+      Weekly sync notes, 2026.06.28: Priya Nandakumar stated the program is on pace for
+      a late-July cutover if the SLA countersignature lands by 2026.07.10, otherwise the
+      July maintenance window is lost and cutover moves to September; Marcus Webb asked
+      for a clear escalation decision on the SLA this week; David Chen flagged the
+      rollback drill timing as the one metric requiring a runbook fix before the shadow
+      test.
+    source: "Atlas Platform Migration status notes, 2026.06.28."

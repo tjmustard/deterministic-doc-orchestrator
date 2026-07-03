@@ -1,0 +1,73 @@
+# Example MeetingAgenda document_data.yaml — test INPUT (not a human-gated fixture).
+# Satisfies the DDO minimal contract and passes ddo.validation.validate().
+meta:
+  doc_type: "meeting_agenda"
+  title: "Widget Sync Go/No-Go"
+  version: "0.1.0"
+  date: "2026.06.24"
+  authors:
+    - "Dana Lee, Product"
+  status: "draft"
+  persona: "meeting_facilitator"
+  style_profile: "agenda_directive"
+  output_formats: ["pdf", "html", "md"]
+  template: "meeting_agenda"
+
+content:
+  sections:
+    - id: "meeting_objective"
+      title: "Meeting Objective"
+      body: >-
+        Decide whether to proceed to a full production rollout of the depot API polling
+        change, or hold at the current feature-flag state, using one week of production
+        telemetry as evidence.
+      claims:
+        - "One week of production telemetry shows zero new mismatches under the feature flag."
+      evidence: ["production_flag_week_zero_mismatches"]
+
+    - id: "agenda_items"
+      title: "Agenda"
+      body: >-
+        Thirty minutes total. Come having read both pre-reads -- meeting time is reserved for
+        decisions, not first reads.
+      claims: []
+      evidence: ["delta_push_spec_ready"]
+      # Time-boxes are opaque string literals, exactly as authored here. No
+      # template computes, sums, or reformats them. Named `entries` (not
+      # `items`) so Jinja2 attribute access never resolves to `dict.items()`.
+      entries:
+        - time_box: "0:00-0:10"
+          topic: "Review one week of production numbers under the feature flag; decide full rollout vs. hold."
+          owner: "Dana Lee"
+        - time_box: "0:10-0:20"
+          topic: "Walk the reduced delta-push spec diagram; take questions."
+          owner: "José Peña"
+        - time_box: "0:20-0:30"
+          topic: "Give feedback on the rollback plan if the delta-push change needs to be reverted after ship."
+          owner: "Sam Okoro"
+
+    - id: "pre_reads"
+      title: "Pre-Reads"
+      body: >-
+        Read the production numbers doc and José's delta-push spec draft before the meeting;
+        both are linked in the calendar invite.
+      claims: []
+      evidence: ["delta_push_spec_ready"]
+
+    - id: "logistics"
+      title: "Logistics"
+      body: >-
+        2026.06.26, 10:00am, on the usual video link -- not the small conference room, whose
+        remote-audio mic has been unreliable this week.
+      claims: []
+      evidence: []
+
+evidence_bank:
+  - id: "production_flag_week_zero_mismatches"
+    type: "data"
+    content: "One full week of the depot API polling change running in production behind the feature flag showed zero new telemetry mismatches, matching the pre-launch audit sample."
+    source: "Planning thread 'Widget Sync Go/No-Go', Dana Lee, 2026.06.24 09:12."
+  - id: "delta_push_spec_ready"
+    type: "correspondence"
+    content: "The reduced delta-push spec draft has been out for team review since the Tuesday before the meeting and is ready to walk through."
+    source: "Planning thread 'Widget Sync Go/No-Go', José Peña, 2026.06.24 11:47."

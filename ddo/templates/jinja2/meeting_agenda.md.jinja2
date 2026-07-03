@@ -1,0 +1,39 @@
+# {{ meta.title }}
+**Meeting Agenda**
+
+* **Version:** {{ meta.version }}
+* **Date:** {{ meta.date }}
+* **Status:** {{ meta.status | upper }}
+* **Authors:** {{ meta.authors | join(', ') }}
+
+---
+
+{% for section in content.sections %}
+## {{ section.title }}
+
+{{ section.body }}
+
+{% if section.entries %}
+{#- Agenda items are rendered as the literal strings present in the YAML.
+   `time_box` is printed verbatim -- never parsed, summed, or reformatted,
+   and no clock/locale value is read anywhere here. Field is named `entries`
+   (not `items`) so Jinja2 attribute access never resolves to `dict.items()`. -#}
+| Time | Topic | Owner |
+|------|-------|-------|
+{% for item in section.entries -%}
+| {{ item.time_box }} | {{ item.topic }} | {{ item.owner }} |
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+{% if evidence_bank and evidence_bank | length > 0 %}
+---
+## Appendix: Evidence Bank
+
+{% for item in evidence_bank %}
+**ID:** `{{ item.id }}` ({{ item.type }})
+**Source:** {{ item.source }}
+**Content:** {{ item.content }}
+
+{% endfor %}
+{% endif %}

@@ -14,12 +14,7 @@ import hashlib
 import pytest
 import yaml
 
-# (template name, input-YAML basename) for each shipped example document. Defined
-# locally so this module is self-contained at collection time.
-EXAMPLES = [
-    ("prd", "prd_example.yaml"),
-    ("scientific_report", "scientific_report_example.yaml"),
-]
+from .conftest import EXAMPLES
 
 # Fixed UNIX-seconds timestamp (2024-06-27T00:00:00Z) for byte-identical PDFs.
 _PINNED_TIMESTAMP = 1719446400
@@ -65,9 +60,21 @@ def _pdf_text(pdf_path) -> str:
 
 
 @pytest.mark.parametrize("template,basename", EXAMPLES)
-@pytest.mark.parametrize("fmt", ["pdf", "html", "md"])
+@pytest.mark.parametrize(
+    "fmt",
+    [
+        pytest.param("pdf", marks=pytest.mark.slow),
+        pytest.param("html", marks=pytest.mark.slow),
+        "md",
+    ],
+)
 def test_examples_render_all_formats(render, example_path, tmp_path, template, basename, fmt):
-    """M1: both example docs render to pdf/html/md with exit 0 and non-empty output."""
+    """M1: both example docs render to pdf/html/md with exit 0 and non-empty output.
+
+    Only the ``md`` format runs by default; ``pdf``/``html`` are marked
+    ``@pytest.mark.slow`` so the full EXAMPLES x [pdf,html,md] cross-product is
+    CI-only while ``-m 'not slow'`` still exercises one format per example.
+    """
     out = tmp_path / f"{template}.{fmt}"
     result = render(template, fmt, example_path(basename), out)
 

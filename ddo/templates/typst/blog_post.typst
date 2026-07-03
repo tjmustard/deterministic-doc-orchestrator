@@ -1,0 +1,61 @@
+// Template: Blog Post
+// Consumes: DDO blog_post.yaml schema
+
+#let data_file = sys.inputs.at("data_file", default: "document_data.yaml")
+#let data = yaml(data_file)
+
+// Document Setup
+#set document(title: data.meta.title, author: data.meta.author)
+#set page(
+  paper: "us-letter",
+  margin: (x: 1in, y: 1in),
+  header: align(right)[
+    #text(8pt, fill: luma(120))[
+      #data.meta.title | v#data.meta.version
+    ]
+  ],
+  numbering: "1 / 1"
+)
+#set text(font: "DejaVu Sans", size: 10pt, fill: luma(30))
+#set heading(numbering: none)
+#show heading: set text(fill: black)
+
+// Title Block
+#align(center)[
+  #block(text(weight: 700, 1.75em, data.meta.title))
+  #v(1em)
+  #text(size: 9pt, fill: luma(80))[
+    *By* #data.meta.author | *Date:* #data.meta.date
+  ]
+]
+#v(2em)
+#line(length: 100%, stroke: 0.5pt + luma(200))
+#v(2em)
+
+// Content Sections — rendered in schema order, no headings between hook/context
+// so the post reads as continuous prose rather than a formal report.
+#for section in data.content.sections [
+  #block(section.body)
+  #v(1.5em)
+]
+
+// Evidence Bank Appendix
+#if "evidence_bank" in data and data.evidence_bank.len() > 0 [
+  #pagebreak(weak: true)
+  #heading(level: 1, "Appendix: Evidence Bank")
+  #v(1em)
+  #for item in data.evidence_bank [
+    #block(
+      fill: luma(245),
+      inset: 10pt,
+      radius: 4pt,
+      width: 100%,
+      [
+        *ID:* `#item.id` (#item.type) \
+        *Source:* #item.source \
+        *Content:* #item.content
+      ]
+    )
+    #v(0.5em)
+  ]
+]

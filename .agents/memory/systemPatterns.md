@@ -68,6 +68,49 @@ The hypergraph (`spec/compiled/architecture.yml`) has 24 nodes: 1 System, 8 Modu
 - **`append_evidence` and `append_review_log` are deprecated (v0.0.3)**: These hardcoded ops are replaced by the generic `{op: "append", target: "evidence_bank"/"meta.review_log", value: {...}}` form. Both remain in `OP_ENUM` and `apply_patches` for v0.0.3 backwards compatibility; scheduled for removal in v0.0.4.
 - **`validate_interview_log` validates op structure, not path syntax**: `OP_ENUM` membership, per-op required/forbidden fields, and `at` type are checked here. Target path syntax (NC-13, `[N]`-terminated detection) belongs in `parse_path`; value contents belong in the post-mutation `validate()` call.
 
+### v0.0.6 Patterns (Expanded Ecosystem Tutorials)
+
+- **Explicit mirror map, never name-pattern discovery** (`EXPECTED_MIRRORS` in
+  `tests/unit/test_tutorial_refs.py`): the anti-rot guard walks every
+  `tutorials/*/input_files/*.yaml` and requires each to appear in an explicit
+  `{input_path: source_path}` dict (source may live in `tests/data/` **or**
+  `tests/fixtures/`) or the `STANDALONE` set. A file matched by directory walk
+  but absent from both is a hard failure — discovery never infers pairing from
+  filename similarity, so the guard cannot silently degrade to checking nothing.
+- **Casual evidence must still be sourced, never invented**: every new document
+  type's `evidence_bank` traces to a real `input_files/<type>_source.md` narrative
+  doc shipped alongside it — mirroring the `ddo-adversarial-loop-v0.0.2` tutorial's
+  citation convention. `validation.py`'s `total_refs == 0` hard-fail is never
+  relaxed to accommodate a casual register.
+- **`output_files/` text-only determinism guard, PDF illustrative-only**: committed
+  `.html`/`.md` tutorial renders are asserted byte-identical to a fresh `build.py`
+  render (`OUTPUT_RENDERS`, `@pytest.mark.slow`); PDF snapshots are explicitly
+  excluded from byte-equality assertions because Typst font/glyph rendering is
+  fragile across environments, not because determinism isn't required elsewhere.
+- **`slow` marker gates the full determinism cross-product**: as `EXAMPLES` grows,
+  `test_examples_render_all_formats`'s `pdf`/`html` legs are marked
+  `@pytest.mark.slow` (only `md` stays in the default fast subset). `pyproject.toml`
+  sets `addopts = "-m 'not slow'"` so `uv run pytest` stays fast by default; CI runs
+  `-m slow` separately for full coverage.
+- **Consolidated `EXAMPLES` single source of truth**: `tests/integration/conftest.py`
+  owns the one `EXAMPLES` list; `test_render_determinism.py` imports it
+  (`from .conftest import EXAMPLES`) rather than keeping a duplicate literal that
+  could silently drift out of sync.
+- **Non-ASCII fixture value is deliberate, not incidental**: `meeting_notes_example.yaml`
+  carries a genuine accented name specifically to force the Typst font-coverage
+  question at authoring time, rather than discovering a glyph gap later in a
+  user's own document.
+- **Time-boxed/scheduled fields are opaque string literals**: `meeting_agenda`'s
+  agenda-item time ranges (e.g. `"09:00-09:15"`) are plain strings, never computed
+  durations or clock reads — preserves the pure-function-of-YAML template
+  invariant established in v0.0.1.
+- **`hyper-audit` Phase 3 reconciles `needs_review` only, not `dirty`**: the
+  directly-modified leaf nodes flagged by `hypergraph_updater.py`'s
+  `propagate_blast_radius` stay `dirty`; only the propagated blast-radius
+  ancestors/dependents (`needs_review`) get their `inputs`/`outputs`/`description`
+  rewritten and flipped to `clean`. This is current framework behavior, not a v0.0.6
+  gap to fix.
+
 ## Conventions
 
 - **Date format in YAML**: dotted — `"2026.06.29"` (not ISO dashes `"2026-06-26"`)
@@ -77,3 +120,4 @@ The hypergraph (`spec/compiled/architecture.yml`) has 24 nodes: 1 System, 8 Modu
 - **Red Team reads Jinja2/Markdown, never PDF**: HTML/MD are deterministically derived from YAML and machine-parseable. PDF is not.
 - **`tests/candidate_outputs/`**: Blocked from agent reads (`.agentignore`). Unverified AI outputs live here until a human promotes them to `tests/fixtures/`.
 - **`spec/archive/`**: Audited MiniPRDs archived here with `_AUDITED` suffix. Blocked from agent reads.
+- **Tutorial directory naming is not uniform**: `ddo-v001-prd-workflow`, `ddo-adversarial-loop-v0.0.2`, and `ddo-v006-<slug>` all coexist under `tutorials/`. Anything that discovers tutorial content must walk directories, never assume a single name pattern.

@@ -85,7 +85,14 @@ def _parse_args(argv: "list[str] | None" = None) -> argparse.Namespace:
     parser.add_argument(
         "--template",
         required=True,
-        choices=("prd", "scientific_report"),
+        choices=(
+            "prd",
+            "scientific_report",
+            "blog_post",
+            "meeting_notes",
+            "meeting_agenda",
+            "project_report",
+        ),
         help="Template family (CLI-authoritative; meta is never consulted for routing).",
     )
     parser.add_argument(
@@ -145,7 +152,7 @@ def _resolve_template(template: str, fmt: str) -> Path:
     """Resolve the template path strictly from CLI flags (never from ``meta``).
 
     Args:
-        template: The ``--template`` value (``prd`` or ``scientific_report``).
+        template: The ``--template`` value (one of the CLI's ``choices``).
         fmt: The ``--format`` value (``pdf``, ``html``, or ``md``).
 
     Returns:

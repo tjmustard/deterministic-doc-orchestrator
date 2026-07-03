@@ -1,0 +1,74 @@
+# Example meeting_notes document_data.yaml — test INPUT (not a human-gated fixture).
+# Satisfies the DDO minimal contract and passes ddo.validation.validate().
+# Evidence traces to tutorials/ddo-v006-authoring-custom-structures/input_files/meeting_notes_source.md.
+meta:
+  doc_type: "meeting_notes"
+  title: "Widget Sync Weekly Sync — Notes"
+  version: "0.1.0"
+  date: "2026.06.15"
+  authors:
+    - "Priya Shah, Engineering"
+  status: "final"
+  persona: "meeting_recorder"
+  style_profile: "notes_concise"
+  output_formats: ["pdf", "html", "md"]
+  template: "meeting_notes"
+
+content:
+  sections:
+    - id: "attendees"
+      title: "Attendees"
+      body: >-
+        Priya Shah (Engineering) — José Peña (Product) — Dana Lee (Product) —
+        Sam Okoro (Engineering).
+      claims:
+        - "Four attendees were present: Priya Shah, José Peña, Dana Lee, Sam Okoro."
+      evidence: ["meeting_notes_source_20260615"]
+
+    - id: "agenda_covered"
+      title: "Agenda Covered"
+      body: >-
+        Depot API polling change status. Billing dispute audit follow-up. Scope
+        check for the mobile app delta push.
+      claims: []
+      evidence: ["meeting_notes_source_20260615"]
+
+    - id: "decisions"
+      title: "Decisions"
+      body: >-
+        Decided: ship the depot API polling change to production behind a
+        feature flag rather than a full rollout. Decided: scope the mobile app
+        delta push down to only widgets whose reading changed since the last
+        successful sync, deferring the "push all fields" behavior.
+      claims:
+        - "The polling change ships behind a feature flag, not a full rollout."
+        - "The delta push is scoped to changed widgets only, not all fields."
+      evidence: ["meeting_notes_source_20260615"]
+
+    - id: "action_items"
+      title: "Action Items"
+      body: >-
+        Sam Okoro — land the feature flag for the polling change — by end of
+        week. José Peña — draft the reduced delta-push spec — before the next
+        sync. Dana Lee — re-run the billing dispute audit — once the feature
+        flag is live in production.
+      claims: []
+      evidence: ["meeting_notes_source_20260615"]
+
+    - id: "next_steps"
+      title: "Next Steps"
+      body: >-
+        Open the next sync with a review of production metrics once the
+        feature flag is live. First agenda item: the reduced delta-push spec,
+        once José's draft is ready.
+      claims: []
+      evidence: []
+
+evidence_bank:
+  - id: "meeting_notes_source_20260615"
+    type: "transcript"
+    content: >-
+      Raw notes from the 2026.06.15 Widget Sync Weekly Sync, including the
+      attendee list, decisions on the feature-flagged polling rollout and
+      scoped delta push, and the resulting action items.
+    source: "tutorials/ddo-v006-authoring-custom-structures/input_files/meeting_notes_source.md"

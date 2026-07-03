@@ -8,15 +8,125 @@ This file updates dynamically after *every task completion*. It captures the "No
 - Agent reads this *first* to understand where to pick up.
 
 ## Current Sprint Goal
-**DDO v0.0.5 — AUDITED, RECONCILED & RELEASED (2026-06-30)**
+**DDO v0.0.6 — AUDITED, RECONCILED & RELEASED (2026-07-02)**
 
-Style & Tone Configuration implemented via fan-out subagent execution (3 waves per
-the SuperPRD DAG), then audited via 7 parallel fan-out subagents (one per MiniPRD) —
-all 7 passed contract verification with no punch lists. Hypergraph reconciled
-(`needs_review` → `clean`, 35 nodes) via a Haiku sub-agent. All 7 MiniPRDs archived to
-`spec/archive/*_AUDITED.md`. `pyproject.toml` bumped to `0.0.5`; `CHANGELOG.md` and
-`README.md` updated. 216 tests passing (199 unit + integration, 2 skipped pending
-human sign-off), ruff clean.
+Expanded Ecosystem Tutorials implemented via 9 fanned-out MiniPRD builder passes
+(harness prep + 4 document types + 3 tutorials + anti-rot guard), then audited via 9
+parallel fan-out subagents (one per MiniPRD) — all 9 passed Phase 1/2 contract
+verification with no punch lists. Hypergraph reconciled (`needs_review` → `clean`,
+11 nodes) via a Haiku sub-agent; 11 directly-modified leaf nodes remain `dirty` by
+design (Phase 3 only reconciles `needs_review`, per `hyper-audit`'s `SKILL.md`). All
+9 MiniPRDs archived to `spec/archive/*_AUDITED.md`. `pyproject.toml` bumped to
+`0.0.6`; `CHANGELOG.md` and `README.md` updated. 348 tests collected (324 passed + 4
+skipped in the default fast subset, 20 more under `-m slow`), ruff clean.
+
+## v0.0.6 Implementation Summary
+
+### Execution Method
+Fanned out one subagent per MiniPRD for the `/hyper-execute` build pass (DAG order
+per SuperPRD §5.3: MP-0 harness prep → MP-1..MP-4 document types in parallel →
+MP-5..MP-7 tutorials → MP-8 anti-rot guard + hypergraph, done last since it's the
+only step registering new nodes). Audit (`/hyper-audit`) then fanned out 9 parallel
+read-only subagents, one per MiniPRD, for Phase 1 (Contract Verification) + Phase 2
+(Test Validation) — each independently read the MiniPRD, verified the actual files
+on disk, ran targeted tests, and rendered examples via `build.py` where applicable.
+
+### New Files
+- **Four new document types**, each a complete self-contained worked example:
+  `blog_post` (persona `content_editor`, style `blog_casual`), `meeting_notes`
+  (persona `meeting_recorder`, style `notes_concise` — carries a deliberate
+  non-ASCII attendee name, RT-12), `meeting_agenda` (persona `meeting_facilitator`,
+  style `agenda_directive` — time-boxed entries are opaque string literals, no
+  computed durations, RT-09), `project_report` (persona `project_stakeholder`,
+  style `executive_formal`). Each ships schema + 3 templates (typst/html/md) +
+  example YAML (`tests/data/`) + narrative source doc + `EXAMPLES` enrollment.
+- `tutorials/ddo-v006-evidence-bank-workflow/` — citation-integrity lens over the
+  human-promoted `tests/fixtures/ingest_output.yaml`; zero `ddo-refine`/
+  `ddo-interview` invocations (RT-15).
+- `tutorials/ddo-v006-authoring-custom-structures/` — walks `blog_post` from scratch
+  through to a rendered document; the other three types as worked examples; the
+  tutorial that actually renders (RT-15).
+- `tutorials/ddo-v006-writing-structured-personas/` — walks the v0.0.4 AV-table
+  format and drives `ddo-create-persona` end-to-end using the four new personas as
+  specimens.
+- `tests/unit/test_tutorial_refs.py` — anti-rot guard: `input_files/` walk +
+  explicit `EXPECTED_MIRRORS` map (source in `tests/data/` or `tests/fixtures/`) +
+  `STANDALONE` set; byte-identity assertion. `OUTPUT_RENDERS` (`@pytest.mark.slow`)
+  re-renders `output_files/*.{html,md}` and byte-compares against committed copies;
+  PDF excluded. 26 tests. Independently verified non-vacuous during audit (drift
+  was injected in a scratch copy and confirmed to fail the guard).
+- `tests/integration/test_schema_meta_refs.py` — asserts every schema's and every
+  example's `meta.persona`/`meta.style_profile` resolves to a real file, plus soft
+  schema-conformance (example section ids ⊆ schema sections).
+
+### Changed
+- `ddo/build.py` — `--template` CLI `choices` extended with the four new types (no
+  render/validate logic changed; this diff is a shared mechanical touchpoint across
+  all four per-type MiniPRDs, since CLI dispatch requires each new template name to
+  be a legal `--template` value).
+- `tests/integration/conftest.py` — `EXAMPLES` extended to 6 entries; single source
+  of truth (RT-03).
+- `tests/integration/test_render_determinism.py` — duplicate local `EXAMPLES`
+  literal removed in favor of `from .conftest import EXAMPLES`; `fmt` parametrization
+  split into `slow`-marked (`pdf`, `html`) and default (`md`) cases.
+- `pyproject.toml` — `markers = ["slow: ..."]` + `addopts = "-m 'not slow'"` (RT-11);
+  version `0.0.5` → `0.0.6`.
+
+### Hypergraph (spec/compiled/architecture.yml)
+- **2 new nodes:** `tutorials` (Module, `implements: ddo_system`, framed as
+  meta-documentation per CLAUDE.md's toolchain-framing discipline), `test_tutorial_refs_unit`
+  (Atomic, `implements: tests_unit`, `depends_on: tutorials`).
+- **7 nodes marked `dirty`** by direct modification: `ddo_schemas`, `ddo_templates`,
+  `ddo_personas`, `ddo_styles`, `render_fixture`, `tests_integration`,
+  `test_render_determinism`.
+- **11 nodes reconciled `needs_review` → `clean`** via a Haiku sub-agent (blast-radius
+  propagation): `ddo_system`, `ddo_core`, `ddo_skills`, `documents_output`,
+  `test_ingest_contract`, `skill_red_team`, `test_personas_unit`,
+  `test_loop_integration`, `skill_create_persona`, `skill_create_style`,
+  `test_styles_unit` — `inputs`/`outputs`/`description` rewritten to match actual
+  implementation.
+- **Note:** `dirty` leaf nodes are left `dirty` by design — `hyper-audit`'s
+  `SKILL.md` Phase 3 only reconciles `needs_review` nodes; `hypergraph_updater.py`'s
+  `propagate_blast_radius` never returns a directly-dirtied node to `clean` itself.
+- 37 total nodes: 26 `clean`, 11 `dirty`, 0 `needs_review`.
+
+### Verification
+- All 9 MiniPRDs (`00_HarnessPrep` through `08_AntiRotGuard_Hypergraph`) passed
+  audit with no punch lists.
+- `uv run pytest` — 324 passed, 4 skipped (human-gated fixtures, expected), 20
+  deselected (slow); `uv run pytest -m slow` — 20 passed. `uv run ruff check .` /
+  `ruff format --check .` — both clean.
+- No `ddo/*.py` module logic changed (only the `build.py` CLI `choices` tuple) —
+  v0.0.6 is domain files + tests + docs only, per SuperPRD negative constraints.
+
+### Audit (2026-07-02)
+- Fanned out 9 parallel subagents, one per MiniPRD, for Phase 1 (Contract
+  Verification) + Phase 2 (Test Validation). All 9 returned `PASS` — no punch
+  lists, no scope violations. `MiniPRD_08`'s auditor independently proved the
+  anti-rot guard is not vacuous by simulating a drifted mirror and confirming the
+  guard goes red.
+- Phase 3 reconciliation delegated to a Haiku sub-agent per `hyper-audit`'s
+  `SKILL.md`: rewrote `inputs`/`outputs`/`description` for all 11 `needs_review`
+  nodes and flipped each to `clean`.
+- Phase 4: all 9 MiniPRDs moved to `spec/archive/` with `_AUDITED` suffix.
+
+### Documentation Updated (v0.0.6)
+- `pyproject.toml` — version `0.0.5` → `0.0.6`.
+- `CHANGELOG.md` — `## [0.0.6] - 2026-07-02` block added (Added/Changed sections).
+- `README.md` — badge v0.0.5 → v0.0.6; Directory Structure adds the 4 new schemas/
+  personas/styles and 3 new tutorial dirs; Schema Contract gains a doc-type/
+  persona/style table; roadmap gains a v0.0.6 section; test count 216 → 348;
+  `Running the Build` documents the `slow` marker split.
+- `.agents/memory/activeContext.md` — this file.
+
+### Next Steps
+- Scientific report workflow tutorial (`tutorials/ddo-v001-scientific-report-workflow/`)
+  remains the only open roadmap item.
+
+## v0.0.5 Summary (superseded by v0.0.6 above as "Current Sprint")
+
+Style & Tone Configuration fully implemented, audited, and released. 216 tests
+passing (199 unit + integration, 2 skipped pending human sign-off).
 
 ## v0.0.5 Implementation Summary
 

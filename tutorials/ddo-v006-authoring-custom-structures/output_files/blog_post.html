@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>We Killed Our Daily Standup. Here&#39;s What Happened.</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            border-bottom: 1px solid #eaeaea;
+            padding-bottom: 2rem;
+        }
+        h1 { color: #111; margin-bottom: 0.5rem; }
+        h2 { color: #222; margin-top: 2.5rem; border-bottom: 1px solid #eaeaea; padding-bottom: 0.3rem; }
+        .byline { color: #666; font-size: 0.9rem; }
+        .post-section { margin-bottom: 1.75rem; }
+        .evidence-card {
+            background: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .evidence-card strong { color: #555; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>We Killed Our Daily Standup. Here&#39;s What Happened.</h1>
+    <div class="byline">
+        By Priya Nakamura, Eng Manager | 2026.05.20
+    </div>
+</header>
+
+<main>
+
+    <div class="post-section" id="hook">
+        Our daily standup used to eat 27 minutes a day for a 14-person team, and most of that time was spent waiting for your two minutes to talk. So four months ago, we killed it. Here&#39;s exactly what we replaced it with, and what happened next.
+    </div>
+
+    <div class="post-section" id="context">
+        The firmware team grew from 4 people to 14 across Portland, Berlin, and Bangalore, and the 9:30am call only landed in normal working hours for 9 of them. The other 5 were dialing in before sunrise, after dinner, or just skipping the meeting outright.
+    </div>
+
+    <div class="post-section" id="main_point">
+        So we swapped the live call for an async written update posted by 10am local time, plus a single `@blocked` tag that pings the on-call lead directly instead of waiting for tomorrow&#39;s meeting to surface a problem.
+    </div>
+
+    <div class="post-section" id="supporting_detail">
+        Six weeks in, standup-related meeting time dropped from about 27 minutes a day per person to roughly 6, and a flagged blocker now gets a first response in a median of 41 minutes instead of waiting up to a full day for the next standup. Twelve of fourteen engineers said they preferred the new format when we asked anonymously.
+    </div>
+
+    <div class="post-section" id="conclusion_cta">
+        If your team&#39;s standup has outgrown its time slot, you don&#39;t need a fancy tool to fix it — just a shared channel and one clear rule for what happens when someone&#39;s blocked. Grab the exact async-update template we use and try it with your team for two weeks before you decide it&#39;s not for you.
+    </div>
+
+</main>
+
+
+<footer>
+    <h2 id="evidence-bank">Appendix: Evidence Bank</h2>
+
+    <div class="evidence-card">
+        <strong>ID:</strong> <code>team_growth_and_timing</code> (interview)<br>
+        <strong>Source:</strong> Content brief, tutorials/ddo-v006-authoring-custom-structures/input_files/blog_post_source.md<br>
+        <strong>Content:</strong> The firmware team grew from 4 to 14 engineers across Portland, Berlin, and Bangalore; the fixed 9:30am standup slot only fell within normal working hours for 9 of the 14.
+    </div>
+
+    <div class="evidence-card">
+        <strong>ID:</strong> <code>before_after_survey</code> (data)<br>
+        <strong>Source:</strong> Content brief, tutorials/ddo-v006-authoring-custom-structures/input_files/blog_post_source.md<br>
+        <strong>Content:</strong> Anonymous team survey: standup-related meeting time fell from ~27 minutes/day/person to ~6 minutes/day/person after the switch; 12 of 14 engineers preferred the new format.
+    </div>
+
+    <div class="evidence-card">
+        <strong>ID:</strong> <code>blocker_response_time</code> (data)<br>
+        <strong>Source:</strong> Content brief, tutorials/ddo-v006-authoring-custom-structures/input_files/blog_post_source.md<br>
+        <strong>Content:</strong> Median first response time to an @blocked tag was 41 minutes post-rollout, versus up to 24 hours (next day&#39;s standup) under the prior format.
+    </div>
+
+</footer>
+
+
+</body>
+</html>

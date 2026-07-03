@@ -1,0 +1,86 @@
+# Example blog_post document_data.yaml — test INPUT (not a human-gated fixture).
+# Satisfies the DDO minimal contract and passes ddo.validation.validate().
+# Evidence traces to tutorials/ddo-v006-authoring-custom-structures/input_files/blog_post_source.md.
+meta:
+  doc_type: "blog_post"
+  title: "We Killed Our Daily Standup. Here's What Happened."
+  version: "0.1.0"
+  date: "2026.05.20"
+  author: "Priya Nakamura, Eng Manager"
+  status: "draft"
+  persona: "content_editor"
+  style_profile: "blog_casual"
+  output_formats: ["pdf", "html", "md"]
+  template: "blog_post"
+
+content:
+  sections:
+    - id: "hook"
+      title: "Hook"
+      body: >-
+        Our daily standup used to eat 27 minutes a day for a 14-person team, and most of
+        that time was spent waiting for your two minutes to talk. So four months ago, we
+        killed it. Here's exactly what we replaced it with, and what happened next.
+      claims: []
+      evidence: []
+
+    - id: "context"
+      title: "Context"
+      body: >-
+        The firmware team grew from 4 people to 14 across Portland, Berlin, and Bangalore,
+        and the 9:30am call only landed in normal working hours for 9 of them. The other 5
+        were dialing in before sunrise, after dinner, or just skipping the meeting outright.
+      claims:
+        - "The standup's fixed time zone only worked for a minority of the growing team."
+      evidence: ["team_growth_and_timing"]
+
+    - id: "main_point"
+      title: "Main Point"
+      body: >-
+        So we swapped the live call for an async written update posted by 10am local time,
+        plus a single `@blocked` tag that pings the on-call lead directly instead of waiting
+        for tomorrow's meeting to surface a problem.
+      claims: []
+      evidence: []
+
+    - id: "supporting_detail"
+      title: "Supporting Detail"
+      body: >-
+        Six weeks in, standup-related meeting time dropped from about 27 minutes a day per
+        person to roughly 6, and a flagged blocker now gets a first response in a median of
+        41 minutes instead of waiting up to a full day for the next standup. Twelve of
+        fourteen engineers said they preferred the new format when we asked anonymously.
+      claims:
+        - "The async format cut standup-related meeting time to about a fifth of its former length."
+        - "Blockers get answered far faster under the new @blocked tag than under the old format."
+      evidence: ["before_after_survey", "blocker_response_time"]
+
+    - id: "conclusion_cta"
+      title: "Wrap-Up & Next Step"
+      body: >-
+        If your team's standup has outgrown its time slot, you don't need a fancy tool to
+        fix it — just a shared channel and one clear rule for what happens when someone's
+        blocked. Grab the exact async-update template we use and try it with your team for
+        two weeks before you decide it's not for you.
+      claims: []
+      evidence: []
+
+evidence_bank:
+  - id: "team_growth_and_timing"
+    type: "interview"
+    content: >-
+      The firmware team grew from 4 to 14 engineers across Portland, Berlin, and Bangalore;
+      the fixed 9:30am standup slot only fell within normal working hours for 9 of the 14.
+    source: "Content brief, tutorials/ddo-v006-authoring-custom-structures/input_files/blog_post_source.md"
+  - id: "before_after_survey"
+    type: "data"
+    content: >-
+      Anonymous team survey: standup-related meeting time fell from ~27 minutes/day/person to
+      ~6 minutes/day/person after the switch; 12 of 14 engineers preferred the new format.
+    source: "Content brief, tutorials/ddo-v006-authoring-custom-structures/input_files/blog_post_source.md"
+  - id: "blocker_response_time"
+    type: "data"
+    content: >-
+      Median first response time to an @blocked tag was 41 minutes post-rollout, versus up to
+      24 hours (next day's standup) under the prior format.
+    source: "Content brief, tutorials/ddo-v006-authoring-custom-structures/input_files/blog_post_source.md"

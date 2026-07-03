@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-    <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/releases/latest"><img src="https://img.shields.io/badge/release-v0.0.5-blue" alt="Latest Release"/></a>
+    <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/releases/latest"><img src="https://img.shields.io/badge/release-v0.0.6-blue" alt="Latest Release"/></a>
     <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/stargazers"><img src="https://img.shields.io/github/stars/tjmustard/deterministic-doc-orchestrator?style=social" alt="GitHub stars"/></a>
     <a href="https://github.com/tjmustard/deterministic-doc-orchestrator/blob/main/LICENSE"><img src="https://img.shields.io/github/license/tjmustard/deterministic-doc-orchestrator" alt="License"/></a>
 </p>
@@ -65,7 +65,8 @@ uv run ruff check .
 uv run ruff format --check .
 
 # Tests
-uv run pytest
+uv run pytest                    # fast subset (default: -m "not slow")
+uv run pytest -m slow            # full determinism cross-product (CI only)
 uv run pytest tests/unit/        # unit only
 uv run pytest tests/integration/ # integration only
 ```
@@ -90,22 +91,22 @@ ddo/
 ├── ingest.py         # Atomic write, overwrite guard, fabrication tripwire
 ├── review.py         # Adversarial loop data layer (versioning, validation, atomic writes, views)
 ├── refine.py         # Mutation layer — only permitted writer of document_data.yaml at refine time
-├── schemas/          # YAML schema contracts (prd.yaml, scientific_report.yaml)
-├── templates/        # Typst (.typst) and Jinja2 (.jinja2) rendering templates
-├── personas/         # Adversarial review lenses (product_critic, scientific_reviewer) — each with AV-NN Attack Vector tables
-├── styles/           # Style/tone profiles (formal_professional, conversational, technical_precise) — phrasing-only register anchors
+├── schemas/          # YAML schema contracts (prd, scientific_report, blog_post, meeting_notes, meeting_agenda, project_report)
+├── templates/        # Typst (.typst) and Jinja2 (.jinja2) rendering templates — 6 document types, all 3 formats
+├── personas/         # Adversarial review lenses (product_critic, scientific_reviewer, content_editor, meeting_recorder, meeting_facilitator, project_stakeholder) — each with AV-NN Attack Vector tables
+├── styles/           # Style/tone profiles (formal_professional, conversational, technical_precise, blog_casual, notes_concise, agenda_directive, executive_formal) — phrasing-only register anchors
 ├── fonts/            # Bundled DejaVu fonts (hermetic — no system fonts required)
 └── skills/           # ddo-ingest.md, ddo-render.md, ddo-red-team.md, ddo-interview.md, ddo-refine.md, ddo-create-persona.md, ddo-create-style.md
 
 scripts/              # fixture_signoff_guard.py — pre-commit/CI guard for fixture promotion
 tests/
-├── unit/             # Pure unit tests (validation, paths, ingest, persona structure)
-├── integration/      # End-to-end render determinism + ingest contract tests
+├── unit/             # Pure unit tests (validation, paths, ingest, persona/style structure, tutorial anti-rot guard)
+├── integration/      # End-to-end render determinism + ingest contract + schema/persona/style reference resolution tests
 ├── fixtures/         # Human-promoted golden regression baselines (DDO_FIXTURE_SIGNOFF=1)
 └── data/             # Test input YAML files (example documents)
 
 spec/compiled/        # Ground truth: architecture.yml, SuperPRD.md (baseline), plus one versioned SuperPRD_vX.Y.Z_*.md per released feature
-tutorials/            # Step-by-step workflow tutorials (ddo-v001-prd-workflow/, ddo-adversarial-loop-v0.0.2/, ...)
+tutorials/            # Step-by-step workflow tutorials (ddo-v001-prd-workflow/, ddo-adversarial-loop-v0.0.2/, ddo-v006-evidence-bank-workflow/, ddo-v006-authoring-custom-structures/, ddo-v006-writing-structured-personas/)
 Documents/            # Generated output — gitignored; YYYY.MM.DD_DocType_Title/ structure
 .agents/              # HACF framework toolchain (skills, schemas, rules, scripts, memory)
 .claude/              # Claude Code slash command bridges and settings
@@ -191,7 +192,20 @@ content:
 
 `style_profile` is render-invisible (an ignored unknown key to `validation.py`) and only consulted by `ddo-ingest`/`ddo-interview` when authoring prose. Absent ⇒ clean no-op. A present-but-invalid value (empty, `null`, whitespace, or a stem that doesn't resolve to an existing `ddo/styles/<stem>.md`) hard-fails rather than silently no-op-ing. `prd.yaml` and `scientific_report.yaml` ship live defaults of `formal_professional` and `technical_precise` respectively.
 
-See `ddo/schemas/prd.yaml` and `ddo/schemas/scientific_report.yaml` for the full canonical schemas.
+Six document types ship as complete worked examples, each with its own persona and style:
+
+| Doc type | Persona | Style |
+|---|---|---|
+| `prd` | `product_critic` | `formal_professional` |
+| `scientific_report` | `scientific_reviewer` | `technical_precise` |
+| `blog_post` | `content_editor` | `blog_casual` |
+| `meeting_notes` | `meeting_recorder` | `notes_concise` |
+| `meeting_agenda` | `meeting_facilitator` | `agenda_directive` |
+| `project_report` | `project_stakeholder` | `executive_formal` |
+
+A `tests/integration/test_schema_meta_refs.py` CI guard asserts every schema's and every `tests/data/*.yaml` example's `meta.persona`/`meta.style_profile` resolves to a real file, and that each example's section ids conform to its schema.
+
+See `ddo/schemas/` for the full canonical schemas.
 
 ## 🖨️ Supported Output Formats
 
@@ -236,7 +250,7 @@ See `ddo/schemas/prd.yaml` and `ddo/schemas/scientific_report.yaml` for the full
   - [x] Product Critic
   - [x] Scientific Reviewer (actively exercised in v0.0.2 adversarial loop)
 - [x] Test Suite
-  - [x] 216 tests passing, 2 skipped pending human sign-off (unit + integration)
+  - [x] 348 tests collected (324 passed + 4 skipped pending human sign-off in the default fast subset; 20 more under `-m slow`)
   - [x] Golden regression baselines with human sign-off guard
 - [x] Tutorials
   - [x] PRD YAML workflow tutorial (`tutorials/ddo-v001-prd-workflow/`)
@@ -261,6 +275,12 @@ See `ddo/schemas/prd.yaml` and `ddo/schemas/scientific_report.yaml` for the full
   - [x] `ddo-ingest` / `ddo-interview` style injection — stem-validated, untrusted phrasing-only guidance, body-scoped, sentinel-routed on would-be fabrication
   - [x] `ddo-red-team` register-aware critique — active style surfaced in report header; persona stem-validation gap closed
   - [x] `tests/unit/test_styles.py` glob-based structural validator with negative-case parity
+- [x] Expanded Ecosystem Tutorials (v0.0.6)
+  - [x] Four new document types — `blog_post`, `meeting_notes`, `meeting_agenda`, `project_report` — each a complete worked example (schema + 3 templates + example YAML + narrative source doc + dedicated persona + dedicated style)
+  - [x] Three new tutorials — `ddo-v006-evidence-bank-workflow` (citation-integrity lens), `ddo-v006-authoring-custom-structures` (the tutorial that renders), `ddo-v006-writing-structured-personas` (drives `ddo-create-persona`)
+  - [x] `tests/unit/test_tutorial_refs.py` — anti-rot guard: `input_files/` walk + explicit `EXPECTED_MIRRORS` map spanning `tests/data/` and `tests/fixtures/`; `output_files/` `.html`/`.md` determinism guard
+  - [x] `tests/integration/test_schema_meta_refs.py` — persona/style reference resolution + soft schema-conformance for every schema and example
+  - [x] Consolidated `EXAMPLES` list (`tests/integration/conftest.py`) + `slow` pytest marker bounding default suite runtime as the example matrix grows
 - [ ] Scientific report workflow tutorial
 
 ## 🤝 Support

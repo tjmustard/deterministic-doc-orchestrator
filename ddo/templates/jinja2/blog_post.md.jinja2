@@ -1,0 +1,22 @@
+# {{ meta.title }}
+
+*By {{ meta.author }} | {{ meta.date }}*
+
+---
+
+{% for section in content.sections %}
+{{ section.body }}
+
+{% endfor %}
+
+{% if evidence_bank and evidence_bank | length > 0 %}
+---
+## Appendix: Evidence Bank
+
+{% for item in evidence_bank %}
+**ID:** `{{ item.id }}` ({{ item.type }})  
+**Source:** {{ item.source }}  
+**Content:** {{ item.content }}
+
+{% endfor %}
+{% endif %}

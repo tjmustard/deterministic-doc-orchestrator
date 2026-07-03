@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Widget Sync Go/No-Go - Meeting Agenda</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            border-bottom: 1px solid #eaeaea;
+            padding-bottom: 2rem;
+        }
+        h1 { color: #111; margin-bottom: 0.5rem; }
+        h2 { color: #222; margin-top: 2.5rem; border-bottom: 1px solid #eaeaea; padding-bottom: 0.3rem; }
+        .meta-info { color: #666; font-size: 0.9rem; }
+        table.agenda-items {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        table.agenda-items th, table.agenda-items td {
+            text-align: left;
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid #eee;
+        }
+        table.agenda-items th {
+            color: #555;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        table.agenda-items td.time-box {
+            white-space: nowrap;
+            font-weight: 600;
+        }
+        .evidence-card {
+            background: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .evidence-card strong { color: #555; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Widget Sync Go/No-Go</h1>
+    <div class="meta-info">
+        <strong>Meeting Agenda</strong><br>
+        Version: 0.1.0 | Date: 2026.06.24 | Status: DRAFT<br>
+        Authors: Dana Lee, Product
+    </div>
+</header>
+
+<main>
+
+    <section id="meeting_objective">
+        <h2>Meeting Objective</h2>
+        <div>
+            Decide whether to proceed to a full production rollout of the depot API polling change, or hold at the current feature-flag state, using one week of production telemetry as evidence.
+        </div>
+
+    </section>
+
+    <section id="agenda_items">
+        <h2>Agenda</h2>
+        <div>
+            Thirty minutes total. Come having read both pre-reads -- meeting time is reserved for decisions, not first reads.
+        </div>
+
+        <!--
+            Agenda items are rendered as the literal strings present in the
+            YAML. `time_box` is printed verbatim -- never parsed, summed, or
+            reformatted, and no clock/locale value is read anywhere here.
+            Field is named `entries` (not `items`) so Jinja2 attribute access
+            never resolves to `dict.items()` instead of this field.
+        -->
+        <table class="agenda-items">
+            <thead>
+                <tr><th>Time</th><th>Topic</th><th>Owner</th></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                    <td class="time-box">0:00-0:10</td>
+                    <td>Review one week of production numbers under the feature flag; decide full rollout vs. hold.</td>
+                    <td>Dana Lee</td>
+                </tr>
+
+                <tr>
+                    <td class="time-box">0:10-0:20</td>
+                    <td>Walk the reduced delta-push spec diagram; take questions.</td>
+                    <td>José Peña</td>
+                </tr>
+
+                <tr>
+                    <td class="time-box">0:20-0:30</td>
+                    <td>Give feedback on the rollback plan if the delta-push change needs to be reverted after ship.</td>
+                    <td>Sam Okoro</td>
+                </tr>
+
+            </tbody>
+        </table>
+
+    </section>
+
+    <section id="pre_reads">
+        <h2>Pre-Reads</h2>
+        <div>
+            Read the production numbers doc and José&#39;s delta-push spec draft before the meeting; both are linked in the calendar invite.
+        </div>
+
+    </section>
+
+    <section id="logistics">
+        <h2>Logistics</h2>
+        <div>
+            2026.06.26, 10:00am, on the usual video link -- not the small conference room, whose remote-audio mic has been unreliable this week.
+        </div>
+
+    </section>
+
+</main>
+
+
+<footer>
+    <h2 id="evidence-bank">Appendix: Evidence Bank</h2>
+
+    <div class="evidence-card">
+        <strong>ID:</strong> <code>production_flag_week_zero_mismatches</code> (data)<br>
+        <strong>Source:</strong> Planning thread &#39;Widget Sync Go/No-Go&#39;, Dana Lee, 2026.06.24 09:12.<br>
+        <strong>Content:</strong> One full week of the depot API polling change running in production behind the feature flag showed zero new telemetry mismatches, matching the pre-launch audit sample.
+    </div>
+
+    <div class="evidence-card">
+        <strong>ID:</strong> <code>delta_push_spec_ready</code> (correspondence)<br>
+        <strong>Source:</strong> Planning thread &#39;Widget Sync Go/No-Go&#39;, José Peña, 2026.06.24 11:47.<br>
+        <strong>Content:</strong> The reduced delta-push spec draft has been out for team review since the Tuesday before the meeting and is ready to walk through.
+    </div>
+
+</footer>
+
+
+</body>
+</html>
